@@ -1,0 +1,47 @@
+# Build outputs
+/build/
+/.android/
+/.ios/
+/.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+
+# IDE files
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+
+# macOS and Linux
+.macos/
+.linux/
+
+# Windows
+.windows/
+
+# Web
+.web/
+
+# Generated
+*.lock
+pubspec.lock
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Flutter export files
+*.log
+*.class
+*.swp
+*.swo
+
+# Optional: exclude archive or zipped project files
+*.zip
+*.tar
+*.gz
+
+# Others
+.migrate_working_dir/

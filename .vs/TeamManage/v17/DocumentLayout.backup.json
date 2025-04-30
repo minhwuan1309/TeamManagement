@@ -1,0 +1,58 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "D:\\.NET\\TeamManage\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{64003B92-7A47-4D0D-85F3-8AE8CB4098E6}|TeamManage\\TeamManage.csproj|d:\\.net\\teammanage\\teammanage\\controllers\\authcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{64003B92-7A47-4D0D-85F3-8AE8CB4098E6}|TeamManage\\TeamManage.csproj|solutionrelative:teammanage\\controllers\\authcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{64003B92-7A47-4D0D-85F3-8AE8CB4098E6}|TeamManage\\TeamManage.csproj|d:\\.net\\teammanage\\teammanage\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{64003B92-7A47-4D0D-85F3-8AE8CB4098E6}|TeamManage\\TeamManage.csproj|solutionrelative:teammanage\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 2,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Program.cs",
+              "DocumentMoniker": "D:\\.NET\\TeamManage\\TeamManage\\Program.cs",
+              "RelativeDocumentMoniker": "TeamManage\\Program.cs",
+              "ToolTip": "D:\\.NET\\TeamManage\\TeamManage\\Program.cs",
+              "RelativeToolTip": "TeamManage\\Program.cs",
+              "ViewState": "AgIAAFEAAAAAAAAAAAAAAGgAAAAgAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-04-30T04:40:21.761Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "AuthController.cs",
+              "DocumentMoniker": "D:\\.NET\\TeamManage\\TeamManage\\Controllers\\AuthController.cs",
+              "RelativeDocumentMoniker": "TeamManage\\Controllers\\AuthController.cs",
+              "ToolTip": "D:\\.NET\\TeamManage\\TeamManage\\Controllers\\AuthController.cs",
+              "RelativeToolTip": "TeamManage\\Controllers\\AuthController.cs",
+              "ViewState": "AgIAADkAAAAAAAAAAAArwE4AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-04-29T02:14:41.487Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

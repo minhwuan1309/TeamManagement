@@ -1,0 +1,15 @@
+# User-specific files
+bin/
+obj/
+
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+_ReSharper.*
+
+wwwroot/
+
+appsettings.Development.json
+appsettings.Local.json
