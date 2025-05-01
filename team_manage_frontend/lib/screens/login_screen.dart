@@ -228,6 +228,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                 ),
                               ),
+                            const SizedBox(height: 16), // thêm khoảng cách nếu cần
+                            TextButton(
+                              onPressed: () {
+                                Navigator.pushNamed(context, '/register');
+                              },
+                              child: const Text('Chưa có tài khoản? Đăng ký ngay', style: TextStyle(color: Colors.black)),
+                            ),
                           ],
                         ),
                       ),

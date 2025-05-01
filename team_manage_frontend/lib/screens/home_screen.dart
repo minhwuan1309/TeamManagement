@@ -33,7 +33,7 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'TeamManage',
+          'Team Manage',
           style: TextStyle(
             fontWeight: FontWeight.bold,
           ),
@@ -116,16 +116,29 @@ class HomeScreen extends StatelessWidget {
                               size: 36,
                             ),
                             SizedBox(width: 12),
-                            Text(
-                              'TeamManage',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                              ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "SThink",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  "Team Management",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
+
                         const SizedBox(height: 12),
                         FutureBuilder<String?>(
                           future: getCurrentUserName(),
@@ -180,8 +193,14 @@ class HomeScreen extends StatelessWidget {
                   ),
                   
                   ListTile(
-                    leading: const Icon(Icons.person),
-                    title: const Text('Hồ sơ cá nhân'),
+                    leading: const Icon(
+                      Icons.person, 
+                      color: Colors.blue
+                    ),
+                    title: const Text(
+                      'Hồ sơ cá nhân',
+                      style: TextStyle(fontWeight: FontWeight.w500)  
+                    ),
                     onTap: () => _navigate(context, '/profile'),
                   ),
 

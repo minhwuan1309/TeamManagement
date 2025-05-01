@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:team_manage_frontend/screens/register_screen.dart';
+import 'package:team_manage_frontend/screens/verify_email_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/user_page.dart';
@@ -21,6 +23,8 @@ class MyApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => const LoginScreen(),
+        '/verify-email': (context) => const VerifyEmailScreen(),
+        '/register': (context) => const RegisterScreen(),
         '/home': (context) => const HomeScreen(),
         '/user': (context) => const UserPage(),
         '/user/create': (context) => const CreateUserPage(),

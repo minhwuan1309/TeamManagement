@@ -16,6 +16,10 @@ namespace TeamManage.Data
 
         public UserRole Role { get; set; }
 
+        public string? VerificationCode { get; set; }
+        public DateTime? VerificationExpiry { get; set; }
+        public bool IsVerified { get; set; }
+
         public bool IsActive { get; set; } = true;
         public bool IsDeleted { get; set; } = false;
 

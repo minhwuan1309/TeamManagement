@@ -1,12 +1,17 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../utils/env.dart';
 
 // URL API backend
-const String baseUrl = kIsWeb
-    ? 'http://localhost:5053/api' //web
-    : 'http://10.0.2.2:5053/api'; //emulator
+final String baseUrl =
+    kIsWeb
+        ? 'http://localhost:5053/api'
+        : (Platform.isAndroid
+            ? 'http://192.168.1.8:5053/api' // g22
+            : 'http://10.0.2.2:5053/api'); // emulator
 
 class ApiService {
   static Future<String?> login(String email, String password) async {
@@ -16,10 +21,7 @@ class ApiService {
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': email,
-          'password': password,
-        }),
+        body: jsonEncode({'email': email, 'password': password}),
       );
 
       if (response.statusCode == 200) {
@@ -31,7 +33,6 @@ class ApiService {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('token', token);
         await prefs.setInt('role', role);
-        print("Role: $role");
 
         return token;
       } else {
@@ -50,7 +51,7 @@ class ApiService {
 
     if (token == null) return null;
 
-    final url = Uri.parse('$baseUrl/auth/me');
+    final url = Uri.parse('${getBaseUrl()}/auth/me');
     final response = await http.get(
       url,
       headers: {
@@ -64,6 +65,63 @@ class ApiService {
     } else {
       print('Lỗi lấy profile: ${response.body}');
       return null;
+    }
+  }
+
+  static Future<bool> register(
+    String fullName,
+    String phone,
+    String email,
+    String password,
+  ) async {
+    final url = Uri.parse('$baseUrl/auth/register');
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'fullName': fullName,
+        'phone': phone,
+        'email': email,
+        'password': password,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      print('Lỗi đăng ký: ${response.body}');
+    }
+
+    return response.statusCode == 200;
+  }
+
+  static Future<bool> verifyEmail(String email, String code) async {
+    final url = Uri.parse('$baseUrl/auth/verify-email');
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'email': email, 'code': code}),
+    );
+    return response.statusCode == 200;
+  }
+
+  // Thêm phương thức này vào file api_service.dart
+  static Future<bool> updateUserRole(String userId, int newRole) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      final response = await http.put(
+        Uri.parse('$baseUrl/user/update-role/$userId'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'role': newRole}),
+      );
+
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error updating user role: $e');
+      return false;
     }
   }
 }

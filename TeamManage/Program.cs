@@ -8,6 +8,8 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using TeamManage.Services.CloudinaryConfig;
+using TeamManage.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -77,6 +79,9 @@ builder.Services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>().Cre
 
 // Application Services
 builder.Services.AddTransient<IEmailSender, EmailSender>();
+builder.Services.AddSingleton<CloudinaryService>();
+builder.Services.AddHostedService<AccountCleanupService>();
+
 
 // DB & Identity
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")

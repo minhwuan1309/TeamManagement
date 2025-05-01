@@ -4,7 +4,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using TeamManage.Data;
+using TeamManage.Models;
 using TeamManage.Models.DTO;
+using TeamManage.Services.CloudinaryConfig;
 
 namespace TeamManage.Controllers
 {
@@ -27,7 +29,7 @@ namespace TeamManage.Controllers
                     u.FullName,
                     u.Email,
                     u.Phone,
-                    u.Role,
+                    Role = (int)u.Role,
                     u.Avatar,
                     u.IsActive,
                     u.IsDeleted
@@ -47,7 +49,7 @@ namespace TeamManage.Controllers
                     u.FullName,
                     u.Email,
                     u.Phone,
-                    u.Role,
+                    Role = (int)u.Role,
                     u.Avatar,
                     u.IsActive,
                     u.IsDeleted
@@ -156,33 +158,90 @@ namespace TeamManage.Controllers
                 : BadRequest(result.Errors);
         }
 
+        [Authorize(Roles = "Admin")]
+        [HttpDelete("hard-delete/{id}")]
+        public async Task<IActionResult> HardDeleteUser(string id)
+        {
+            var user = await _user.FindByIdAsync(id);
+            if (user == null)
+                return NotFound("Không tìm thấy người dùng.");
+
+            var result = await _user.DeleteAsync(user);
+            return result.Succeeded
+                ? Ok("Đã xóa tài khoản người dùng.")
+                : BadRequest(result.Errors);
+        }
+
         [Authorize]
         [HttpPut("update-profile")]
-        public async Task<IActionResult> UpdateOwnProfile([FromBody] UserDTO userDTO)
+        public async Task<IActionResult> UpdateOwnProfile([FromForm] UpdateProfileDTO userDTO, IFormFile? file, [FromServices] CloudinaryService cloudinary)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var user = await _user.FindByIdAsync(userId);
             if (user == null)
                 return NotFound("Không tìm thấy người dùng.");
 
-            var duplicatePhone = _user.Users.Any(u => u.Phone == userDTO.Phone && u.Id != user.Id);
-            if(duplicatePhone)
-                return BadRequest("Số điện thoại đã được sử dụng!");
+            if (!string.IsNullOrWhiteSpace(userDTO.Phone))
+            {
+                var duplicatePhone = _user.Users.Any(u => u.Phone == userDTO.Phone && u.Id != user.Id);
+                if (duplicatePhone)
+                    return BadRequest("Số điện thoại đã được sử dụng!");
+                user.Phone = userDTO.Phone;
+            }
 
             if (!string.IsNullOrWhiteSpace(userDTO.FullName))
                 user.FullName = userDTO.FullName;
-            if (!string.IsNullOrWhiteSpace(userDTO.Phone))
-                user.Phone = userDTO.Phone;
-            if (!string.IsNullOrWhiteSpace(userDTO.Avatar))
-                user.Avatar = userDTO.Avatar;
+
+            if(file != null && file.Length > 0)
+            {
+                var avatarUrl = await cloudinary.UploadImageAsync(file);
+                if(avatarUrl == null)
+                    return BadRequest("Tải hình ảnh thất bại.");
+
+                user.Avatar = avatarUrl;
+            }
 
             user.UpdatedAt = DateTime.Now;
-
             var result = await _user.UpdateAsync(user);
+
             if(!result.Succeeded)
                 return BadRequest(result.Errors);
 
             return Ok(new { message = "Cập nhật thông tin thành công", result });
         }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPut("update-role/{id}")]
+        public async Task<IActionResult> UpdateRole(string id, [FromBody] UpdateRoleDTO dto)
+        {
+            var user = await _user.FindByIdAsync(id);
+            if(user == null)
+                return NotFound("Không tìm thấy người dùng.");
+
+            //Xoá role cũ
+            var currentRole = await _user.GetRolesAsync(user);
+            if(currentRole.Any())
+                await _user.RemoveFromRoleAsync(user, currentRole.First());
+
+            user.Role = dto.Role;
+            user.UpdatedAt = DateTime.Now;
+            var result = await _user.UpdateAsync(user);
+
+            await _user.AddToRoleAsync(user, dto.Role.ToString());
+            return result.Succeeded
+                ? Ok("Cập nhật Role thành công")
+                : BadRequest(result.Errors);
+        }
     }
+}
+
+public class UpdateProfileDTO
+{
+    public string? FullName { get; set; }
+    public string? Phone { get; set; }
+    public string? Avatar { get; set; }
+}
+public class UpdateRoleDTO
+{
+    public UserRole Role { get; set; }
 }
