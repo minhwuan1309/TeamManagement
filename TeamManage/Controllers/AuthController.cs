@@ -135,6 +135,42 @@ namespace TeamManage.Controllers
                 ? Ok("Xác thức tài khoản thành công")
                 : BadRequest(result.Errors);
         }
+
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDTO dto)
+        {
+            var user = await _userManager.FindByEmailAsync(dto.Email);
+            if (user == null || user.IsDeleted)
+                return NotFound("Không tìm thấy người dùng.");
+
+            var code = new Random().Next(100000, 999999).ToString();
+            user.VerificationCode = code;
+            user.VerificationExpiry = DateTime.UtcNow.AddMinutes(10);
+
+            await _userManager.UpdateAsync(user);
+            await _emailSender.SendEmailAsync(user.Email, "Khôi phục mật khẩu", $"Mã xác thực đặt lại mật khẩu: {code}");
+            return Ok("Đã gửi mã xác thực đến email: " + user.Email);
+        }
+
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDTO dto)
+        {
+            var user = await _userManager.FindByEmailAsync(dto.Email);
+            if (user == null || user.IsDeleted)
+                return NotFound("Không tìm thấy người dùng.");
+
+            if (user.VerificationCode != dto.Code || user.VerificationExpiry < DateTime.UtcNow)
+                return BadRequest("Mã xác thực không hợp lệ.");
+            
+            user.PasswordHash = _userManager.PasswordHasher.HashPassword(user, dto.NewPassword);
+            user.VerificationCode = null;
+            user.VerificationExpiry = null;
+
+            var result = await _userManager.UpdateAsync(user);
+            return result.Succeeded
+                ? Ok("Đặt lại mật khẩu thành công.")
+                : BadRequest(result.Errors);
+        }
     }
 }
 
@@ -142,4 +178,16 @@ public class VerifyDTO
 {
     public string? Email { get; set; }
     public string? Code { get; set; }
+}
+
+public class ForgotPasswordDTO
+{
+    public string? Email { get; set; }
+}
+
+public class ResetPasswordDTO
+{
+    public string? Email { get; set; }
+    public string? Code { get; set; }
+    public string? NewPassword { get; set; }
 }

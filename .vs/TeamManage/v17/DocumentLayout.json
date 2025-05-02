@@ -3,12 +3,12 @@
   "WorkspaceRootPath": "D:\\.NET\\TeamManage\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{64003B92-7A47-4D0D-85F3-8AE8CB4098E6}|TeamManage\\TeamManage.csproj|d:\\.net\\teammanage\\teammanage\\services\\accountcleanupservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{64003B92-7A47-4D0D-85F3-8AE8CB4098E6}|TeamManage\\TeamManage.csproj|solutionrelative:teammanage\\services\\accountcleanupservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\.NET\\TeamManage\\TeamManage\\Data\\Migrations\\20250502074934_ProjectStartDate.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:TeamManage\\Data\\Migrations\\20250502074934_ProjectStartDate.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\.NET\\TeamManage\\TeamManage\\Data\\Migrations\\20250501052239_RegisterOTP.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:TeamManage\\Data\\Migrations\\20250501052239_RegisterOTP.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{64003B92-7A47-4D0D-85F3-8AE8CB4098E6}|TeamManage\\TeamManage.csproj|d:\\.net\\teammanage\\teammanage\\services\\accountcleanupservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{64003B92-7A47-4D0D-85F3-8AE8CB4098E6}|TeamManage\\TeamManage.csproj|solutionrelative:teammanage\\services\\accountcleanupservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{64003B92-7A47-4D0D-85F3-8AE8CB4098E6}|TeamManage\\TeamManage.csproj|d:\\.net\\teammanage\\teammanage\\services\\cloudinaryconfig\\cloudinaryservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -25,6 +25,10 @@
     {
       "AbsoluteMoniker": "D:0:0:{64003B92-7A47-4D0D-85F3-8AE8CB4098E6}|TeamManage\\TeamManage.csproj|d:\\.net\\teammanage\\teammanage\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{64003B92-7A47-4D0D-85F3-8AE8CB4098E6}|TeamManage\\TeamManage.csproj|solutionrelative:teammanage\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{64003B92-7A47-4D0D-85F3-8AE8CB4098E6}|TeamManage\\TeamManage.csproj|d:\\.net\\teammanage\\teammanage\\data\\migrations\\20250501052239_registerotp.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{64003B92-7A47-4D0D-85F3-8AE8CB4098E6}|TeamManage\\TeamManage.csproj|solutionrelative:teammanage\\data\\migrations\\20250501052239_registerotp.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -43,6 +47,19 @@
             {
               "$type": "Document",
               "DocumentIndex": 0,
+              "Title": "20250502074934_ProjectStartDate.cs",
+              "DocumentMoniker": "D:\\.NET\\TeamManage\\TeamManage\\Data\\Migrations\\20250502074934_ProjectStartDate.cs",
+              "RelativeDocumentMoniker": "TeamManage\\Data\\Migrations\\20250502074934_ProjectStartDate.cs",
+              "ToolTip": "D:\\.NET\\TeamManage\\TeamManage\\Data\\Migrations\\20250502074934_ProjectStartDate.cs",
+              "RelativeToolTip": "TeamManage\\Data\\Migrations\\20250502074934_ProjectStartDate.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-02T07:49:34.96Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
               "Title": "AccountCleanupService.cs",
               "DocumentMoniker": "D:\\.NET\\TeamManage\\TeamManage\\Services\\AccountCleanupService.cs",
               "RelativeDocumentMoniker": "TeamManage\\Services\\AccountCleanupService.cs",
@@ -55,7 +72,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 6,
               "Title": "20250501052239_RegisterOTP.cs",
               "DocumentMoniker": "D:\\.NET\\TeamManage\\TeamManage\\Data\\Migrations\\20250501052239_RegisterOTP.cs",
               "RelativeDocumentMoniker": "TeamManage\\Data\\Migrations\\20250501052239_RegisterOTP.cs",
@@ -63,8 +80,7 @@
               "RelativeToolTip": "TeamManage\\Data\\Migrations\\20250501052239_RegisterOTP.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-01T05:22:39.638Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-05-01T05:22:39.638Z"
             },
             {
               "$type": "Document",
@@ -76,8 +92,7 @@
               "RelativeToolTip": "TeamManage\\Services\\CloudinaryConfig\\CloudinaryService.cs",
               "ViewState": "AgIAABMAAAAAAAAAAAAowBYAAAAJAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-04-30T14:16:33.97Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-04-30T14:16:33.97Z"
             },
             {
               "$type": "Document",

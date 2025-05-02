@@ -103,7 +103,6 @@ class ApiService {
     return response.statusCode == 200;
   }
 
-  // Thêm phương thức này vào file api_service.dart
   static Future<bool> updateUserRole(String userId, int newRole) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -121,6 +120,43 @@ class ApiService {
       return response.statusCode == 200;
     } catch (e) {
       print('Error updating user role: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> forgotPassword(String email) async {
+    final url = Uri.parse('$baseUrl/auth/forgot-password');
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'email': email}),
+    );
+    if (response.statusCode == 200) {
+      print('OTP đã gửi đến email');
+      return true;
+    } else {
+      print('Lỗi gửi mã: ${response.body}');
+      return false;
+    }  
+  }
+
+  static Future<bool> resetPassword(String email, String code, String newPassword) async {
+    final url = Uri.parse('$baseUrl/auth/reset-password');
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'email': email,
+        'code': code,
+        'newPassword': newPassword,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      print('Đặt lại mật khẩu thành công');
+      return true;
+    } else {
+      print('Lỗi reset mật khẩu: ${response.body}');
       return false;
     }
   }

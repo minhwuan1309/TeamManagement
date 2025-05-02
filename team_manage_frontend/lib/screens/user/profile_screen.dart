@@ -173,6 +173,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> changePassword(String current, String newPassword) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    final response = await http.put(
+      Uri.parse('$baseUrl/user/change-password'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'currentPassword': current,
+        'newPassword': newPassword,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      Navigator.pop(context); // đóng popup
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Đổi mật khẩu thành công"),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Thất bại: ${response.body}"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -386,17 +420,83 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   const SizedBox(height: 16),
                                   TextButton(
                                     onPressed: () {
-                                      // TODO: Implement change password functionality
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            "Tính năng đang phát triển",
-                                          ),
-                                        ),
+                                      showDialog(
+                                        context: context,
+                                        builder: (context) {
+                                          final oldPassCtrl =
+                                              TextEditingController();
+                                          final newPassCtrl =
+                                              TextEditingController();
+                                          final formKey =
+                                              GlobalKey<FormState>();
+
+                                          return AlertDialog(
+                                            title: const Text('Đổi mật khẩu'),
+                                            content: Form(
+                                              key: formKey,
+                                              child: Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  TextFormField(
+                                                    controller: oldPassCtrl,
+                                                    obscureText: true,
+                                                    decoration:
+                                                        const InputDecoration(
+                                                          labelText:
+                                                              'Mật khẩu hiện tại',
+                                                        ),
+                                                    validator:
+                                                        (val) =>
+                                                            val == null ||
+                                                                    val.isEmpty
+                                                                ? 'Nhập mật khẩu hiện tại'
+                                                                : null,
+                                                  ),
+                                                  const SizedBox(height: 12),
+                                                  TextFormField(
+                                                    controller: newPassCtrl,
+                                                    obscureText: true,
+                                                    decoration:
+                                                        const InputDecoration(
+                                                          labelText:
+                                                              'Mật khẩu mới',
+                                                        ),
+                                                    validator:
+                                                        (val) =>
+                                                            val == null ||
+                                                                    val.length <
+                                                                        6
+                                                                ? 'Tối thiểu 6 ký tự'
+                                                                : null,
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed:
+                                                    () =>
+                                                        Navigator.pop(context),
+                                                child: const Text('Huỷ'),
+                                              ),
+                                              ElevatedButton(
+                                                onPressed: () {
+                                                  if (formKey.currentState!
+                                                      .validate()) {
+                                                    changePassword(
+                                                      oldPassCtrl.text,
+                                                      newPassCtrl.text,
+                                                    );
+                                                  }
+                                                },
+                                                child: const Text('Xác nhận'),
+                                              ),
+                                            ],
+                                          );
+                                        },
                                       );
                                     },
+
                                     child: const Text('Đổi mật khẩu'),
                                   ),
                                 ],

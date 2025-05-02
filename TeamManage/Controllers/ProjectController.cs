@@ -28,8 +28,8 @@ namespace TeamManage.Controllers
         {
             var projects = await _context.Projects
                 .Include(p => p.Members)
-                .ThenInclude(m => m.User)
-                .Where(p => !p.IsDeleted)
+                    .ThenInclude(m => m.User)
+                .Include(p => p.Modules)
                 .ToListAsync();
 
             var result = projects.Select(p => new ProjectDTO
@@ -37,7 +37,7 @@ namespace TeamManage.Controllers
                 Id = p.Id,
                 Name = p.Name,
                 Description = p.Description,
-                Deadline = p.Deadline,
+                StartDate = p.StartDate,
                 IsDeleted = p.IsDeleted,
                 CreatedAt = p.CreatedAt,
                 UpdatedAt = p.UpdatedAt,
@@ -45,14 +45,26 @@ namespace TeamManage.Controllers
                     .Where(m => m.User != null)
                     .Select(m => new MemberDTO
                     {
+                        FullName = m.User.FullName,
                         UserId = m.UserId,
-                        
-                        RoleInProject = m.RoleInProject
+                        RoleInProject = m.RoleInProject,
+                    })
+                    .ToList(),
+
+                Modules = p.Modules
+                    .Where(m => !m.IsDeleted)
+                    .Select(m => new ModuleDTO
+                    {
+                        Id = m.Id,
+                        Name =m.Name,
+                        Status =m.Status
                     })
                     .ToList()
             });
+
             return Ok(result);
         }
+
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetProjectById(int id)
@@ -60,7 +72,8 @@ namespace TeamManage.Controllers
             var project = await _context.Projects
                 .Include(p => p.Members)
                 .ThenInclude(m => m.User)
-                .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
+                .Include(p => p.Modules)
+                .FirstOrDefaultAsync(p => p.Id == id);
 
             if (project == null)
                 return NotFound("Không tìm thấy project");
@@ -70,16 +83,27 @@ namespace TeamManage.Controllers
                 Id = project.Id,
                 Name = project.Name,
                 Description = project.Description,
-                Deadline = project.Deadline,
+                StartDate = project.StartDate,
                 IsDeleted = project.IsDeleted,
                 CreatedAt = project.CreatedAt,
                 UpdatedAt = project.UpdatedAt,
                 Members = project.Members
-                    .Where(m => m.User != null) // thêm check an toàn
+                    .Where(m => m.User != null)
                     .Select(m => new MemberDTO
                     {
+                        FullName = m.User.FullName,
                         UserId = m.UserId,
-                        RoleInProject = m.RoleInProject
+                        RoleInProject = m.RoleInProject,
+                        Avatar = m.User.Avatar
+                    })
+                    .ToList(),
+                Modules = project.Modules
+                    .Where(m => !m.IsDeleted)
+                    .Select(m => new ModuleDTO
+                    {
+                        Id = m.Id,
+                        Name =m.Name,
+                        Status =m.Status,
                     })
                     .ToList()
             };
@@ -101,7 +125,7 @@ namespace TeamManage.Controllers
             members.Add(new ProjectMember
             {
                 UserId = userId,
-                RoleInProject = UserRole.Dev,
+                RoleInProject = UserRole.Admin,
                 CreatedAt = DateTime.Now,
                 UpdatedAt = DateTime.Now
             });
@@ -110,7 +134,7 @@ namespace TeamManage.Controllers
             {
                 foreach (var m in projectDTO.Members)
                 {
-                    if (m.UserId != userId) // tránh thêm trùng người tạo
+                    if (m.UserId != userId)
                     {
                         members.Add(new ProjectMember
                         {
@@ -128,7 +152,7 @@ namespace TeamManage.Controllers
             {
                 Name = projectDTO.Name,
                 Description = projectDTO.Description,
-                Deadline = projectDTO.Deadline,
+                StartDate = projectDTO.StartDate,
                 IsDeleted = false,
                 CreatedAt = DateTime.Now,
                 UpdatedAt = DateTime.Now,
@@ -139,17 +163,17 @@ namespace TeamManage.Controllers
             await _context.SaveChangesAsync();
 
             return Ok(new
-                {
-                    message = "Tạo project thành công",
-                    project = newProject,
-                    memberCount = members.Count,
-                }
+            {
+                message = "Tạo project thành công",
+                project = newProject,
+                memberCount = members.Count,
+            }
             );
         }
 
         // ====================== Update Project ======================
 
-        [Authorize(Roles = "Admin")]
+        [Authorize]
         [HttpPut("update/{id}")]
         public async Task<IActionResult> UpdateProject(int id, [FromBody] ProjectDTO projectDTO)
         {
@@ -162,9 +186,9 @@ namespace TeamManage.Controllers
                 project.Name = projectDTO.Name;
             if (!string.IsNullOrWhiteSpace(projectDTO.Description))
                 project.Description = projectDTO.Description;
-            if (projectDTO.Deadline != null)
-                project.Deadline = projectDTO.Deadline;
-            
+            if (projectDTO.StartDate != null)
+                project.StartDate = projectDTO.StartDate;
+
             project.UpdatedAt = DateTime.Now;
 
             // Lấy danh sách thành viên hiện tại của dự án
@@ -200,18 +224,13 @@ namespace TeamManage.Controllers
                     }
                 }
 
-                // Xử lý xóa thành viên không còn trong danh sách
                 var memberIdsToKeep = projectDTO.Members.Select(m => m.UserId).ToList();
                 var membersToRemove = existingMembers
                     .Where(m => !memberIdsToKeep.Contains(m.UserId))
                     .ToList();
 
-                foreach (var memberToRemove in membersToRemove)
-                {
-                    memberToRemove.IsDeleted = true;
-                    memberToRemove.UpdatedAt = DateTime.Now;
-                    _context.ProjectMembers.Update(memberToRemove);
-                }
+                _context.ProjectMembers.RemoveRange(membersToRemove);
+
             }
 
             _context.Projects.Update(project);
@@ -243,6 +262,18 @@ namespace TeamManage.Controllers
                     ? "Dự án đã được xoá mềm (ẩn khỏi danh sách)."
                     : "Dự án đã được khôi phục."
             );
+        }
+        [HttpDelete("hard-delete/{id}")]
+        public async Task<IActionResult> HardDeleteProject(int id)
+        {
+            var project = await _context.Projects.FirstOrDefaultAsync(p => p.Id == id);
+            if (project == null)
+                return NotFound("Không tìm thấy dự án");
+
+            _context.Projects.Remove(project);
+            await _context.SaveChangesAsync();
+
+            return Ok("Dự án đã được xóa.");
         }
     }
 }

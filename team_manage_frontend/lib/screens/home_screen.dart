@@ -219,6 +219,19 @@ class HomeScreen extends StatelessWidget {
                         onTap: () => _navigate(context, '/user'),
                       ),
                     ),
+
+                  ListTile(
+                    leading: const Icon(
+                      Icons.person, 
+                      color: Colors.blue
+                    ),
+                    title: const Text(
+                      'Dự án',
+                      style: TextStyle(fontWeight: FontWeight.w500)  
+                    ),
+                    onTap: () => _navigate(context, '/project'),
+                  ),
+                  
                   const Divider(thickness: 1, height: 32),
                   ListTile(
                     leading: const Icon(

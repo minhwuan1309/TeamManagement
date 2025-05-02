@@ -9,7 +9,7 @@ namespace TeamManage.Models
         public string Name { get; set; }
         [Required(ErrorMessage = "Mô tả project không được để trống")]
         public string Description { get; set; }
-        public DateTime Deadline { get; set; }
+        public DateTime StartDate { get; set; }
         public bool IsDeleted { get; set; } = false;
         public ICollection<ProjectMember> Members { get; set; }
         public ICollection<Module> Modules { get; set; }

@@ -12,9 +12,10 @@ namespace TeamManage.Models.DTO
         public string? Description { get; set; }
 
         [DataType(DataType.Date)]
-        public DateTime Deadline { get; set; }
+        public DateTime StartDate { get; set; }
 
         public bool IsDeleted { get; set; } = false;
+        public List<ModuleDTO> Modules { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
@@ -22,3 +23,5 @@ namespace TeamManage.Models.DTO
         public List<MemberDTO> Members { get; set; } = new();
     }
 }
+
+

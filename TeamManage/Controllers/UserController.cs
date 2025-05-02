@@ -65,7 +65,7 @@ namespace TeamManage.Controllers
         [HttpPost("create")]
         public async Task<IActionResult> CreateUser([FromBody] UserDTO userDTO)
         {
-            if(string.IsNullOrWhiteSpace(userDTO.Password))
+            if (string.IsNullOrWhiteSpace(userDTO.Password))
                 return BadRequest("Mật khẩu là bắt buộc");
 
             var user = new ApplicationUser
@@ -85,7 +85,7 @@ namespace TeamManage.Controllers
             };
 
             var result = await _user.CreateAsync(user, userDTO.Password);
-            if(!result.Succeeded)
+            if (!result.Succeeded)
             {
                 return BadRequest(result.Errors);
             }
@@ -98,7 +98,7 @@ namespace TeamManage.Controllers
         public async Task<IActionResult> UpdateUser(string id, [FromBody] UserDTO userDTO)
         {
             var user = await _user.FindByIdAsync(id);
-            if(user == null || user.IsDeleted)
+            if (user == null || user.IsDeleted)
                 return NotFound("Người dùng không tồn tại hoặc đã bị xóa.");
 
             if (!string.IsNullOrWhiteSpace(userDTO.FullName))
@@ -113,7 +113,7 @@ namespace TeamManage.Controllers
             user.UpdatedAt = DateTime.Now;
 
             var result = await _user.UpdateAsync(user);
-            if(!result.Succeeded)
+            if (!result.Succeeded)
             {
                 return BadRequest(result.Errors);
             }
@@ -126,9 +126,9 @@ namespace TeamManage.Controllers
         public async Task<IActionResult> ToggleBlockUser(string id)
         {
             var user = await _user.FindByIdAsync(id);
-            if(user == null)
+            if (user == null)
                 return NotFound("Không tìm thấy người dùng.");
-            
+
             user.IsActive = !user.IsActive;
             user.UpdatedAt = DateTime.Now;
 
@@ -192,10 +192,10 @@ namespace TeamManage.Controllers
             if (!string.IsNullOrWhiteSpace(userDTO.FullName))
                 user.FullName = userDTO.FullName;
 
-            if(file != null && file.Length > 0)
+            if (file != null && file.Length > 0)
             {
                 var avatarUrl = await cloudinary.UploadImageAsync(file);
-                if(avatarUrl == null)
+                if (avatarUrl == null)
                     return BadRequest("Tải hình ảnh thất bại.");
 
                 user.Avatar = avatarUrl;
@@ -204,8 +204,8 @@ namespace TeamManage.Controllers
             user.UpdatedAt = DateTime.Now;
             var result = await _user.UpdateAsync(user);
 
-            if(!result.Succeeded)
-                return BadRequest(result.Errors);
+            if (!result.Succeeded)
+                return BadRequest("Bạn chưa được cấp quyền thực hiện chức năng!");
 
             return Ok(new { message = "Cập nhật thông tin thành công", result });
         }
@@ -215,12 +215,12 @@ namespace TeamManage.Controllers
         public async Task<IActionResult> UpdateRole(string id, [FromBody] UpdateRoleDTO dto)
         {
             var user = await _user.FindByIdAsync(id);
-            if(user == null)
+            if (user == null)
                 return NotFound("Không tìm thấy người dùng.");
 
             //Xoá role cũ
             var currentRole = await _user.GetRolesAsync(user);
-            if(currentRole.Any())
+            if (currentRole.Any())
                 await _user.RemoveFromRoleAsync(user, currentRole.First());
 
             user.Role = dto.Role;
@@ -231,6 +231,25 @@ namespace TeamManage.Controllers
             return result.Succeeded
                 ? Ok("Cập nhật Role thành công")
                 : BadRequest(result.Errors);
+        }
+
+        [Authorize]
+        [HttpPut("change-password")]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDTO dto)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var user = await _user.FindByIdAsync(userId);
+            if (user == null || user.IsDeleted)
+                return NotFound("Không tìm thấy người dùng.");
+
+            var result = await _user.ChangePasswordAsync(user, dto.CurrentPassword, dto.NewPassword);
+            if (!result.Succeeded)
+            {
+                var errors = result.Errors.Select(e => e.Description);
+                return BadRequest(string.Join(" | ", errors));
+            }
+
+            return Ok("Đã đổi mật khẩu mới.");
         }
     }
 }
@@ -245,3 +264,12 @@ public class UpdateRoleDTO
 {
     public UserRole Role { get; set; }
 }
+
+public class ChangePasswordDTO
+{
+    public string? CurrentPassword { get; set; }
+    public string? NewPassword { get; set; }
+}
+
+
+
