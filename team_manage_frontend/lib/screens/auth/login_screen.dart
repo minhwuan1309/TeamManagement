@@ -32,7 +32,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (token != null) {
       // Đăng nhập thành công, chuyển trang
-      Navigator.pushReplacementNamed(context, '/home');
+      Navigator.pushReplacementNamed(context, '/');
     } else {
       setState(() {
         errorMessage = 'Đăng nhập thất bại. Kiểm tra email hoặc mật khẩu.';

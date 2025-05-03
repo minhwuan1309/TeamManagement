@@ -15,4 +15,15 @@
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
     }
+
+    public class GetModuleWithTaskDTO
+    {
+        public int Id { get; set; }
+        public string? Title { get; set; }
+        public ProcessStatus Status { get; set; }
+        public string? AssignedUserId { get; set; }
+        public string? AssignedUserName { get; set; }
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+    }
 }

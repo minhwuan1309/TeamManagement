@@ -4,6 +4,8 @@ import 'package:team_manage_frontend/screens/auth/login_screen.dart';
 import 'package:team_manage_frontend/screens/auth/register_screen.dart';
 import 'package:team_manage_frontend/screens/auth/reset_password_screen.dart';
 import 'package:team_manage_frontend/screens/auth/verify_email_screen.dart';
+import 'package:team_manage_frontend/screens/modules/create_module_page.dart';
+import 'package:team_manage_frontend/screens/modules/module_page.dart';
 import 'package:team_manage_frontend/screens/project/create_project_page.dart';
 import 'package:team_manage_frontend/screens/project/project_page.dart';
 import 'screens/home_screen.dart';
@@ -24,13 +26,13 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'TeamManage',
       theme: ThemeData(primarySwatch: Colors.blue),
-      initialRoute: '/',
+      initialRoute: '/login',
       routes: {
         //Auth - User
-        '/': (context) => const LoginScreen(),
+        '/login': (context) => const LoginScreen(),
         '/verify-email': (context) => const VerifyEmailScreen(),
         '/register': (context) => const RegisterScreen(),
-        '/home': (context) => const HomeScreen(),
+        '/': (context) => const HomeScreen(),
         '/user': (context) => const UserPage(),
         '/user/create': (context) => const CreateUserPage(),
         '/profile': (context) => const ProfileScreen(),
@@ -40,6 +42,21 @@ class MyApp extends StatelessWidget {
         //Project
         '/project': (context) => const ProjectPage(),
         '/project/create': (context) => const CreateProjectPage(),
+
+        //Module
+        '/module': (context) => const ModulePage(),
+        '/module/create': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          if (args is int) {
+            return CreateModulePage(projectId: args);
+          } else {
+            return const Scaffold(
+              body: Center(child: Text("Lỗi: projectId không hợp lệ")),
+            );
+          }
+        },
+
+
       },
     );
   }

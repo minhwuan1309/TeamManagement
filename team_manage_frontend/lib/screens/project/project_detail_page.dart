@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:team_manage_frontend/screens/modules/module_detail_page.dart';
 import 'edit_project_page.dart';
 
 class ProjectDetailPage extends StatefulWidget {
@@ -57,21 +58,19 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
     final avatar = member['avatar'];
     final fullName = member['fullName'] ?? member['userId'] ?? 'Chưa rõ';
     final role = member['roleInProject'] ?? 'viewer';
-    
+
     final roleColors = {
       'admin': Colors.red,
       'dev': Colors.blue,
       'tester': Colors.green,
       'viewer': Colors.grey,
     };
-    
+
     final roleColor = roleColors[role.toLowerCase()] ?? Colors.grey;
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       elevation: 1,
       child: ListTile(
         leading: CircleAvatar(
@@ -97,59 +96,92 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
           children: [
             Icon(Icons.person_outline, size: 16, color: roleColor),
             const SizedBox(width: 4),
-            Text(
-              'Vai trò: $role',
-              style: TextStyle(color: roleColor),
-            ),
+            Text('Vai trò: $role', style: TextStyle(color: roleColor)),
           ],
         ),
       ),
     );
   }
 
-  Widget buildModuleCard(dynamic module) {
-    final statusColors = {
-      'completed': Colors.green,
-      'in progress': Colors.blue,
-      'pending': Colors.orange,
-      'cancelled': Colors.red,
-    };
-    
-    final status = module['status']?.toString().toLowerCase() ?? 'pending';
-    final statusColor = statusColors[status] ?? Colors.grey;
+Widget buildModuleCard(dynamic module) {
+    // Chuyển đổi trạng thái từ module sang chuỗi hiển thị
+    String _getStatusText(dynamic status) {
+      if (status is int) {
+        switch (status) {
+          case 0:
+            return 'Chưa bắt đầu';
+          case 1:
+            return 'Đang tiến hành';
+          case 2:
+            return 'Hoàn thành';
+          default:
+            return 'Không xác định';
+        }
+      } else if (status is String) {
+        switch (status.toLowerCase()) {
+          case 'none':
+            return 'Chưa bắt đầu';
+          case 'inprogress':
+          case 'in_progress':
+            return 'Đang tiến hành';
+          case 'done':
+            return 'Hoàn thành';
+          default:
+            return 'Không xác định';
+        }
+      }
+      return 'Không xác định';
+    }
 
+    // Lấy màu trạng thái
+    Color _getStatusColor(dynamic status) {
+      if (status is int) {
+        switch (status) {
+          case 0:
+            return Colors.grey;
+          case 1:
+            return Colors.blue;
+          case 2:
+            return Colors.green;
+          default:
+            return Colors.grey;
+        }
+      } else if (status is String) {
+        switch (status.toLowerCase()) {
+          case 'none':
+            return Colors.grey;
+          case 'inprogress':
+          case 'in_progress':
+            return Colors.blue;
+          case 'done':
+            return Colors.green;
+          default:
+            return Colors.grey;
+        }
+      }
+      return Colors.grey;
+    }
+    
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-      ),
-      elevation: 1,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: statusColor.withOpacity(0.2),
-          child: Icon(Icons.view_module, color: statusColor),
+        leading: Icon(
+          Icons.view_module,
+          color: _getStatusColor(module['status']),
         ),
-        title: Text(
-          module['name'],
-          style: const TextStyle(fontWeight: FontWeight.w500),
+        title: Text(module['name'] ?? 'Không có tên'),
+        subtitle: Text("Trạng thái: ${_getStatusText(module['status'])}"),
+        trailing: IconButton(
+          icon: const Icon(Icons.arrow_forward_ios),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => ModuleDetailPage.withId(moduleId: module['id'])),
+            );
+          },
         ),
-        subtitle: Row(
-          children: [
-            Icon(Icons.info_outline, size: 16, color: statusColor),
-            const SizedBox(width: 4),
-            Text(
-              'Trạng thái: ${module['status']}',
-              style: TextStyle(color: statusColor),
-            ),
-          ],
-        ),
-        trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-        onTap: () {
-          // Navigate to module detail
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Chức năng xem chi tiết module đang phát triển"))
-          );
-        },
       ),
     );
   }
@@ -168,7 +200,9 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
               children: [
                 CircleAvatar(
                   radius: 32,
-                  backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
+                  backgroundColor: Theme.of(
+                    context,
+                  ).primaryColor.withOpacity(0.2),
                   child: Icon(
                     Icons.folder,
                     color: Theme.of(context).primaryColor,
@@ -192,9 +226,10 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
                           padding: const EdgeInsets.only(top: 8),
                           child: Row(
                             children: [
-                              Icon(Icons.calendar_today, 
-                                size: 16, 
-                                color: Colors.grey[600]
+                              Icon(
+                                Icons.calendar_today,
+                                size: 16,
+                                color: Colors.grey[600],
                               ),
                               const SizedBox(width: 4),
                               Text(
@@ -210,7 +245,7 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
               ],
             ),
             const Divider(height: 32),
-            
+
             // Description
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -287,10 +322,7 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
       if (res.statusCode == 200) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(res.body),
-              backgroundColor: Colors.green,
-            )
+            SnackBar(content: Text(res.body), backgroundColor: Colors.green),
           );
           Navigator.pop(context, true); // Trả về signal để cha refresh
         }
@@ -300,7 +332,7 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
             SnackBar(
               content: Text('Lỗi: ${res.body}'),
               backgroundColor: Colors.red,
-            )
+            ),
           );
         }
       }
@@ -344,10 +376,7 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
       if (res.statusCode == 200) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(res.body),
-              backgroundColor: Colors.green,
-            )
+            SnackBar(content: Text(res.body), backgroundColor: Colors.green),
           );
           Navigator.pop(context, true);
         }
@@ -357,7 +386,7 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
             SnackBar(
               content: Text('Lỗi: ${res.body}'),
               backgroundColor: Colors.red,
-            )
+            ),
           );
         }
       }
@@ -426,91 +455,93 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
       ),
       body: Container(
         decoration: BoxDecoration(color: Colors.grey[50]),
-        child: isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : project == null
+        child:
+            isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : project == null
                 ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.error_outline, 
-                            size: 64, 
-                            color: Colors.grey[400]),
-                        const SizedBox(height: 16),
-                        Text(
-                          "Không tìm thấy project",
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Colors.grey[600],
-                          ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        size: 64,
+                        color: Colors.grey[400],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        "Không tìm thấy project",
+                        style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue.shade700,
                         ),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue.shade700,
-                          ),
-                          child: const Text('Quay lại'),
-                        ),
-                      ],
-                    ),
-                  )
-                : SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        buildProjectInfoCard(),
-                        
-                        buildSectionTitle('Danh sách thành viên', Icons.people),
-                        
-                        if ((project!['members']?['\$values'] ?? []).isEmpty)
-                          Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Text(
-                                "Chưa có thành viên",
-                                style: TextStyle(color: Colors.grey[600]),
-                              ),
-                            ),
-                          )
-                        else
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: Column(
-                              children: (project!['members']?['\$values'] ?? [])
-                                  .map<Widget>((m) => buildMemberCard(m))
-                                  .toList(),
-                            ),
-                          ),
-
-                        buildSectionTitle('Danh sách module', Icons.view_module),
-                        
-                        if ((project!['modules']?['\$values'] ?? []).isEmpty)
-                          Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Text(
-                                "Chưa có module",
-                                style: TextStyle(color: Colors.grey[600]),
-                              ),
-                            ),
-                          )
-                        else
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: Column(
-                              children: (project!['modules']?['\$values'] ?? [])
-                                  .map<Widget>((m) => buildModuleCard(m))
-                                  .toList(),
-                            ),
-                          ),
-                          
-                        const SizedBox(height: 24),
-                      ],
-                    ),
+                        child: const Text('Quay lại'),
+                      ),
+                    ],
                   ),
+                )
+                : SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      buildProjectInfoCard(),
+
+                      buildSectionTitle('Danh sách thành viên', Icons.people),
+
+                      if ((project!['members']?['\$values'] ?? []).isEmpty)
+                        Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Text(
+                              "Chưa có thành viên",
+                              style: TextStyle(color: Colors.grey[600]),
+                            ),
+                          ),
+                        )
+                      else
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Column(
+                            children:
+                                (project!['members']?['\$values'] ?? [])
+                                    .map<Widget>((m) => buildMemberCard(m))
+                                    .toList(),
+                          ),
+                        ),
+
+                      buildSectionTitle('Danh sách module', Icons.view_module),
+
+                      if ((project!['modules']?['\$values'] ?? []).isEmpty)
+                        Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Text(
+                              "Chưa có module",
+                              style: TextStyle(color: Colors.grey[600]),
+                            ),
+                          ),
+                        )
+                      else
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Column(
+                            children:
+                                (project!['modules']?['\$values'] ?? [])
+                                    .map<Widget>((m) => buildModuleCard(m))
+                                    .toList(),
+                          ),
+                        ),
+
+                      const SizedBox(height: 24),
+                    ],
+                  ),
+                ),
       ),
     );
   }

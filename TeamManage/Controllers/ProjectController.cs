@@ -147,7 +147,6 @@ namespace TeamManage.Controllers
                 }
             }
 
-
             var newProject = new Project
             {
                 Name = projectDTO.Name,

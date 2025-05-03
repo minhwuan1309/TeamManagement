@@ -226,10 +226,22 @@ class HomeScreen extends StatelessWidget {
                       color: Colors.blue
                     ),
                     title: const Text(
-                      'Dự án',
+                      'Dự án (Projects)',
                       style: TextStyle(fontWeight: FontWeight.w500)  
                     ),
                     onTap: () => _navigate(context, '/project'),
+                  ),
+
+                  ListTile(
+                    leading: const Icon(
+                      Icons.person, 
+                      color: Colors.blue
+                    ),
+                    title: const Text(
+                      'Nhóm chức năng (Modules)',
+                      style: TextStyle(fontWeight: FontWeight.w500)  
+                    ),
+                    onTap: () => _navigate(context, '/module'),
                   ),
                   
                   const Divider(thickness: 1, height: 32),
