@@ -1,48 +1,56 @@
 import 'dart:convert';
 import 'dart:io' show Platform;
+import 'dart:math';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/env.dart';
 
-// URL API backend
-final String baseUrl =
-    kIsWeb
-        ? 'http://localhost:5053/api'
-        : (Platform.isAndroid
-            ? 'http://192.168.1.8:5053/api' // g22
-            : 'http://10.0.2.2:5053/api'); // emulator
+final String baseUrl = 
+  kIsWeb
+    ?'http://localhost:5053/api'
+    : Platform.isAndroid
+        ?'http://10.0.2.2:5053/api'
+        :'http://192.168.1.8:5053/api';
 
 class ApiService {
-  static Future<String?> login(String email, String password) async {
+  static Future<String?> login(String email, String password) async{
     final url = Uri.parse('$baseUrl/auth/login');
 
-    try {
+    
       final response = await http.post(
         url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email, 'password': password}),
+        headers: {'Content-Type' : 'application/json'},
+        body: jsonEncode({
+          'email': email,
+          'password': password,
+        })
       );
 
-      if (response.statusCode == 200) {
+      if(response.statusCode == 200){
         final data = jsonDecode(response.body);
         final token = data['token'];
         final role = data['role'];
 
-        // Lưu token vào local storage
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('token', token);
         await prefs.setInt('role', role);
 
         return token;
+      } else if (response.statusCode == 401) {
+      final message = response.body.toLowerCase();
+      if (message.contains("sai mật khẩu")) {
+        throw Exception("Sai tài khoản hoặc mật khẩu");
+      } else if (message.contains("email không tồn tại") || message.contains("tài khoản bị khoá")) {
+        throw Exception("Không tìm thấy tài khoản");
       } else {
-        print('Login thất bại: ${response.body}');
-        return null;
+        throw Exception("Đăng nhập thất bại");
       }
-    } catch (e) {
-      print('Lỗi login: $e');
-      return null;
+    } else {
+      throw Exception("Lỗi hệ thống. Vui lòng thử lại sau.");
     }
+    
   }
 
   static Future<Map<String, dynamic>?> getProfile() async {
@@ -101,6 +109,13 @@ class ApiService {
       body: jsonEncode({'email': email, 'code': code}),
     );
     return response.statusCode == 200;
+  }
+
+  static Future<void> logout(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('token');
+    await prefs.remove('role');
+    Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
   }
 
   static Future<bool> updateUserRole(String userId, int newRole) async {

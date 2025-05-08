@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:team_manage_frontend/api_service.dart';
+import 'package:team_manage_frontend/layouts/common_layout.dart';
 import 'package:team_manage_frontend/screens/modules/module_detail_page.dart';
 import 'package:team_manage_frontend/screens/modules/create_module_page.dart';
 
@@ -18,7 +20,8 @@ class _ModulePageState extends State<ModulePage> {
   int? selectedProjectId;
   bool isLoading = false;
   bool _refreshInProgress = false;
-  final String baseUrl = 'http://localhost:5053/api';
+  bool showDeletedOnly = false;
+  List<dynamic> allModules = [];
 
   @override
   void initState() {
@@ -47,7 +50,7 @@ class _ModulePageState extends State<ModulePage> {
                 : (decoded is List ? decoded : []);
 
         setState(() {
-          projects = projectList;
+          projects = projectList.where((p) => p['isDeleted'] == false).toList();
           isLoading = false;
           if (projectList.isNotEmpty) {
             selectedProjectId = projectList[0]['id'];
@@ -72,7 +75,6 @@ class _ModulePageState extends State<ModulePage> {
     int projectId, {
     bool showLoadingIndicator = true,
   }) async {
-    // Avoid multiple simultaneous refresh operations
     if (_refreshInProgress) return;
     _refreshInProgress = true;
 
@@ -104,7 +106,8 @@ class _ModulePageState extends State<ModulePage> {
         }
 
         setState(() {
-          modules = modulesList;
+          allModules = modulesList;
+          applyFilter();
           isLoading = false;
         });
       } else {
@@ -125,6 +128,16 @@ class _ModulePageState extends State<ModulePage> {
     } finally {
       _refreshInProgress = false;
     }
+  }
+
+  void applyFilter() {
+    setState(() {
+      if (showDeletedOnly) {
+        modules = allModules.where((m) => m['isDeleted'] == true).toList();
+      } else {
+        modules = allModules.where((m) => m['isDeleted'] == false).toList();
+      }
+    });
   }
 
   // Periodic data refresh setup with a timer
@@ -198,6 +211,8 @@ class _ModulePageState extends State<ModulePage> {
   }
 
   Widget buildModuleCard(dynamic module) {
+    final bool isDeleted = module['isDeleted'] ?? false;
+    
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       elevation: 3,
@@ -205,10 +220,22 @@ class _ModulePageState extends State<ModulePage> {
       child: ListTile(
         leading: Icon(
           Icons.view_module,
-          color: _getStatusColor(module['status']),
+          color: isDeleted ? Colors.red : _getStatusColor(module['status']),
         ),
         title: Text(module['name'] ?? 'Không có tên'),
-        subtitle: Text("Trạng thái: ${_getStatusText(module['status'])}"),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Trạng thái: ${_getStatusText(module['status'])}"),
+            Text(
+              isDeleted ? "Đã xoá" : "Đang hoạt động",
+              style: TextStyle(
+                color: isDeleted ? Colors.red : Colors.green,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -292,25 +319,41 @@ class _ModulePageState extends State<ModulePage> {
     }
   }
 
+  Widget buildFilterToggle() {
+    return Card(
+      elevation: 2,
+      margin: const EdgeInsets.all(16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            const Text(
+              "Hiển thị module đã xoá",
+              style: TextStyle(fontWeight: FontWeight.w500),
+            ),
+            Switch(
+              value: showDeletedOnly,
+              activeColor: Theme.of(context).primaryColor,
+              onChanged: (val) {
+                setState(() {
+                  showDeletedOnly = val;
+                  applyFilter();
+                });
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Quản lý Module'),
-        backgroundColor: Colors.blue.shade700,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              if (selectedProjectId != null) {
-                fetchModules(selectedProjectId!);
-              }
-            },
-            tooltip: 'Làm mới dữ liệu',
-          ),
-        ],
-      ),
-      body: Column(
+    return CommonLayout(
+      title: 'Quản lý module',
+      child: Column(
         children: [
           const SizedBox(height: 12),
           Padding(
@@ -338,6 +381,7 @@ class _ModulePageState extends State<ModulePage> {
             ),
           ),
           const SizedBox(height: 12),
+          buildFilterToggle(),
           Expanded(
             child: RefreshIndicator(
               onRefresh: _onRefresh,

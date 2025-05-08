@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:team_manage_frontend/api_service.dart';
+import 'package:team_manage_frontend/layouts/common_layout.dart';
 
 class CreateUserPage extends StatefulWidget {
   const CreateUserPage({super.key});
@@ -19,8 +21,7 @@ class _CreateUserPageState extends State<CreateUserPage> {
   int _role = 3;
   bool _isObscure = true;
 
-  final String baseUrl = 'http://localhost:5053/api';
-
+  
   Future<void> _createUser() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
@@ -62,13 +63,9 @@ class _CreateUserPageState extends State<CreateUserPage> {
   @override
   Widget build(BuildContext context) {
     int role = 3;
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Tạo người dùng mới'),
-        backgroundColor: Theme.of(context).primaryColor,
-        elevation: 2,
-      ),
-      body: Container(
+    return CommonLayout(
+      title: 'Tạo người dùng mới',
+      child: Container(
         decoration: BoxDecoration(
           color: Colors.grey[50],
         ),

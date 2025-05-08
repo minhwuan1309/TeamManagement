@@ -194,11 +194,11 @@ namespace TeamManage.Controllers
 
             if (file != null && file.Length > 0)
             {
-                var avatarUrl = await cloudinary.UploadImageAsync(file);
-                if (avatarUrl == null)
+                var uploadResult = await cloudinary.UploadFileAsync(file);
+                if (uploadResult == null)
                     return BadRequest("Tải hình ảnh thất bại.");
 
-                user.Avatar = avatarUrl;
+                user.Avatar = uploadResult.Value.url;
             }
 
             user.UpdatedAt = DateTime.Now;

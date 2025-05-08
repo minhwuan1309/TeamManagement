@@ -19,9 +19,10 @@ namespace TeamManage.Models.DTO
     public class SimpleModuleDTO
     {
         public int Id { get; set; }
-        public string Name { get; set; }
+        public string? Name { get; set; }
         public ProcessStatus Status { get; set; }
         public int MemberCount { get; set; }
+        public bool IsDeleted { get; set; }
     }
 
 }

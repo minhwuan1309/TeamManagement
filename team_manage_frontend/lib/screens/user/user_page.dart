@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:team_manage_frontend/api_service.dart';
+import 'package:team_manage_frontend/layouts/common_layout.dart';
 
 class UserPage extends StatefulWidget {
   const UserPage({Key? key}) : super(key: key);
@@ -755,13 +756,9 @@ Future<void> updateRole(String userId, int newRole) async {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Quản lý người dùng'),
-        backgroundColor: Colors.blue.shade700,
-        elevation: 2,
-      ),
-      body: Container(
+    return CommonLayout(
+      title: 'Quản lý người dùng',
+      child: Container(
         decoration: BoxDecoration(color: Colors.grey[50]),
         child:
             isLoading

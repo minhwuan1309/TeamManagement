@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:team_manage_frontend/api_service.dart';
+import 'package:team_manage_frontend/layouts/common_layout.dart';
 import 'package:team_manage_frontend/screens/modules/module_detail_page.dart';
 import 'edit_project_page.dart';
 
@@ -16,7 +18,6 @@ class ProjectDetailPage extends StatefulWidget {
 }
 
 class _ProjectDetailPageState extends State<ProjectDetailPage> {
-  final String baseUrl = 'http://localhost:5053/api';
   Map<String, dynamic>? project;
   bool isLoading = true;
   final dateFormat = DateFormat('dd/MM/yyyy');
@@ -415,45 +416,39 @@ Widget buildModuleCard(dynamic module) {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Chi tiết Project'),
-        backgroundColor: Colors.blue.shade700,
-        elevation: 2,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit),
-            tooltip: 'Chỉnh sửa Project',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder:
-                      (context) => EditProjectPage(projectId: widget.projectId),
-                ),
-              ).then((shouldReload) {
-                if (shouldReload == true) fetchProject();
-              });
-            },
+    return CommonLayout(
+      title: 'Chi tiết dự án',
+      appBarActions: [
+        IconButton(
+          icon: const Icon(Icons.edit),
+          tooltip: 'Chỉnh sửa Project',
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => EditProjectPage(projectId: widget.projectId),
+              ),
+            ).then((shouldReload) {
+              if (shouldReload == true) fetchProject();
+            });
+          },
+        ),
+        IconButton(
+          icon: Icon(
+            project?['isDeleted'] == true ? Icons.restore : Icons.delete,
+            color: Colors.red,
           ),
+          tooltip: project?['isDeleted'] == true ? 'Khôi phục' : 'Xoá Project',
+          onPressed: confirmToggleDelete,
+        ),
+        if (project?['isDeleted'] == true)
           IconButton(
-            icon: Icon(
-              project?['isDeleted'] == true ? Icons.restore : Icons.delete,
-              color: Colors.white,
-            ),
-            tooltip:
-                project?['isDeleted'] == true ? 'Khôi phục' : 'Xoá Project',
-            onPressed: confirmToggleDelete,
+            icon: const Icon(Icons.delete_forever),
+            tooltip: 'Xoá vĩnh viễn',
+            onPressed: confirmHardDelete,
           ),
-          if (project?['isDeleted'] == true)
-            IconButton(
-              icon: const Icon(Icons.delete_forever),
-              tooltip: 'Xoá vĩnh viễn',
-              onPressed: confirmHardDelete,
-            ),
-        ],
-      ),
-      body: Container(
+      ],
+      child: Container(
         decoration: BoxDecoration(color: Colors.grey[50]),
         child:
             isLoading

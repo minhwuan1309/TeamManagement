@@ -176,6 +176,19 @@ namespace TeamManage.Controllers
                 : "Đã khôi phục task.");
         }
 
+        [HttpDelete("hard-delete/{id}")] 
+        public async Task<IActionResult> HardDeleteTask(int id)
+        {
+            var task = await _context.TaskItems.FirstOrDefaultAsync(t => t.Id == id);
+            if (task == null)
+                return NotFound("Không tìm thấy task.");
+
+            _context.TaskItems.Remove(task);
+            await _context.SaveChangesAsync();
+
+            return Ok("Task đã được xóa.");
+        }
+
         // ====================== Update Task Status ======================
 
         [HttpPut("update-status/{id}")] 

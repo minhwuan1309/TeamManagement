@@ -21,21 +21,23 @@ class _LoginScreenState extends State<LoginScreen> {
       errorMessage = '';
     });
 
-    final token = await ApiService.login(
-      emailController.text.trim(),
-      passwordController.text.trim(),
-    );
+    try {
+      final token = await ApiService.login(
+        emailController.text.trim(),
+        passwordController.text.trim(),
+      );
 
-    setState(() {
-      isLoading = false;
-    });
-
-    if (token != null) {
-      // Đăng nhập thành công, chuyển trang
-      Navigator.pushReplacementNamed(context, '/');
-    } else {
       setState(() {
-        errorMessage = 'Đăng nhập thất bại. Kiểm tra email hoặc mật khẩu.';
+        isLoading = false;
+      });
+
+      if (token != null) {
+        Navigator.pushReplacementNamed(context, '/');
+      }
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+        errorMessage = e.toString().replaceFirst('Exception: ', '').trim();
       });
     }
   }

@@ -8,6 +8,8 @@ import 'package:path/path.dart' as path;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:team_manage_frontend/api_service.dart';
+import 'package:team_manage_frontend/layouts/common_layout.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -26,8 +28,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? avatarUrl;
   File? _selectedAvatar;
   Uint8List? _avatarBytes;
-
-  final baseUrl = 'http://localhost:5053/api';
 
   @override
   void initState() {
@@ -209,306 +209,297 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Hồ sơ cá nhân"),
-        backgroundColor: Colors.blue.shade700,
-        elevation: 2,
-      ),
-      body: Container(
-        decoration: BoxDecoration(color: Colors.grey[50]),
-        child:
-            isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 500),
-                        child: Card(
-                          elevation: 4,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(24),
-                            child: Form(
-                              key: _formKey,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.center,
+    return CommonLayout(
+      title: "Hồ sơ cá nhân",
+      child: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 500),
+                    child: Card(
+                      elevation: 4,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              // Avatar section
+                              Stack(
+                                alignment: Alignment.bottomRight,
                                 children: [
-                                  // Avatar section
-                                  Stack(
-                                    alignment: Alignment.bottomRight,
-                                    children: [
-                                      CircleAvatar(
-                                        radius: 50,
-                                        backgroundColor: Colors.blue.shade700
-                                            .withOpacity(0.2),
-                                        backgroundImage:
-                                            _avatarBytes != null
-                                                ? MemoryImage(_avatarBytes!)
-                                                : (_selectedAvatar != null
-                                                    ? FileImage(
-                                                      _selectedAvatar!,
-                                                    )
-                                                    : (avatarUrl != null &&
-                                                            avatarUrl!
-                                                                .isNotEmpty
-                                                        ? NetworkImage(
-                                                          avatarUrl!,
-                                                        )
-                                                        : null)),
-
-                                        child:
-                                            avatarUrl == null ||
-                                                    avatarUrl!.isEmpty
-                                                ? Text(
-                                                  nameCtrl.text.isNotEmpty
-                                                      ? nameCtrl.text[0]
-                                                          .toUpperCase()
-                                                      : '?',
-                                                  style: TextStyle(
-                                                    fontSize: 36,
-                                                    fontWeight: FontWeight.bold,
-                                                    color:
-                                                        Theme.of(
-                                                          context,
-                                                        ).primaryColor,
-                                                  ),
+                                  CircleAvatar(
+                                    radius: 50,
+                                    backgroundColor: Colors.blue.shade700
+                                        .withOpacity(0.2),
+                                    backgroundImage:
+                                        _avatarBytes != null
+                                            ? MemoryImage(_avatarBytes!)
+                                            : (_selectedAvatar != null
+                                                ? FileImage(
+                                                  _selectedAvatar!,
                                                 )
-                                                : null,
-                                      ),
-                                      Container(
-                                        width: 32,
-                                        height: 32,
-                                        decoration: BoxDecoration(
-                                          color: Colors.blue.shade700,
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: IconButton(
-                                          icon: const Icon(
-                                            Icons.camera_alt,
-                                            size: 18,
-                                            color: Colors.white,
-                                          ),
-                                          onPressed: () async {
-                                            await pickAvatarImage();
-                                          },
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 16),
+                                                : (avatarUrl != null &&
+                                                        avatarUrl!
+                                                            .isNotEmpty
+                                                    ? NetworkImage(
+                                                      avatarUrl!,
+                                                    )
+                                                    : null)),
 
-                                  // User role badge
-                                  if (userRole != null)
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                        vertical: 6,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.blue.shade700.withOpacity(
-                                          0.1,
-                                        ),
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: Text(
-                                        getRoleName(userRole),
-                                        style: TextStyle(
-                                          color: Theme.of(context).primaryColor,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  const SizedBox(height: 24),
-
-                                  // Email field (readonly)
-                                  TextFormField(
-                                    controller: emailCtrl,
-                                    readOnly: true,
-                                    decoration: InputDecoration(
-                                      labelText: 'Email',
-                                      prefixIcon: Icon(
-                                        Icons.email,
-                                        color: Theme.of(context).primaryColor,
-                                      ),
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      filled: true,
-                                      fillColor: Colors.grey[100],
-                                      labelStyle: TextStyle(
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-
-                                  // Full name field
-                                  TextFormField(
-                                    controller: nameCtrl,
-                                    decoration: InputDecoration(
-                                      labelText: 'Họ và tên',
-                                      prefixIcon: Icon(
-                                        Icons.person,
-                                        color: Theme.of(context).primaryColor,
-                                      ),
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      filled: true,
-                                      fillColor: Colors.white,
-                                    ),
-                                    validator: (value) {
-                                      if (value == null || value.isEmpty) {
-                                        return 'Vui lòng nhập họ tên';
-                                      }
-                                      return null;
-                                    },
-                                  ),
-                                  const SizedBox(height: 16),
-
-                                  // Phone field
-                                  TextFormField(
-                                    controller: phoneCtrl,
-                                    keyboardType: TextInputType.phone,
-                                    decoration: InputDecoration(
-                                      labelText: 'Số điện thoại',
-                                      prefixIcon: Icon(
-                                        Icons.phone,
-                                        color: Theme.of(context).primaryColor,
-                                      ),
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      filled: true,
-                                      fillColor: Colors.white,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 32),
-
-                                  // Save button
-                                  SizedBox(
-                                    width: double.infinity,
-                                    height: 50,
-                                    child: ElevatedButton(
-                                      onPressed: updateProfile,
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.blue.shade700,
-                                        foregroundColor: Colors.white,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                        ),
-                                        elevation: 2,
-                                      ),
-                                      child: const Text(
-                                        'Lưu thay đổi',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-
-                                  // Change password option
-                                  const SizedBox(height: 16),
-                                  TextButton(
-                                    onPressed: () {
-                                      showDialog(
-                                        context: context,
-                                        builder: (context) {
-                                          final oldPassCtrl =
-                                              TextEditingController();
-                                          final newPassCtrl =
-                                              TextEditingController();
-                                          final formKey =
-                                              GlobalKey<FormState>();
-
-                                          return AlertDialog(
-                                            title: const Text('Đổi mật khẩu'),
-                                            content: Form(
-                                              key: formKey,
-                                              child: Column(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  TextFormField(
-                                                    controller: oldPassCtrl,
-                                                    obscureText: true,
-                                                    decoration:
-                                                        const InputDecoration(
-                                                          labelText:
-                                                              'Mật khẩu hiện tại',
-                                                        ),
-                                                    validator:
-                                                        (val) =>
-                                                            val == null ||
-                                                                    val.isEmpty
-                                                                ? 'Nhập mật khẩu hiện tại'
-                                                                : null,
-                                                  ),
-                                                  const SizedBox(height: 12),
-                                                  TextFormField(
-                                                    controller: newPassCtrl,
-                                                    obscureText: true,
-                                                    decoration:
-                                                        const InputDecoration(
-                                                          labelText:
-                                                              'Mật khẩu mới',
-                                                        ),
-                                                    validator:
-                                                        (val) =>
-                                                            val == null ||
-                                                                    val.length <
-                                                                        6
-                                                                ? 'Tối thiểu 6 ký tự'
-                                                                : null,
-                                                  ),
-                                                ],
+                                    child:
+                                        avatarUrl == null ||
+                                                avatarUrl!.isEmpty
+                                            ? Text(
+                                              nameCtrl.text.isNotEmpty
+                                                  ? nameCtrl.text[0]
+                                                      .toUpperCase()
+                                                  : '?',
+                                              style: TextStyle(
+                                                fontSize: 36,
+                                                fontWeight: FontWeight.bold,
+                                                color:
+                                                    Theme.of(
+                                                      context,
+                                                    ).primaryColor,
                                               ),
-                                            ),
-                                            actions: [
-                                              TextButton(
-                                                onPressed:
-                                                    () =>
-                                                        Navigator.pop(context),
-                                                child: const Text('Huỷ'),
-                                              ),
-                                              ElevatedButton(
-                                                onPressed: () {
-                                                  if (formKey.currentState!
-                                                      .validate()) {
-                                                    changePassword(
-                                                      oldPassCtrl.text,
-                                                      newPassCtrl.text,
-                                                    );
-                                                  }
-                                                },
-                                                child: const Text('Xác nhận'),
-                                              ),
-                                            ],
-                                          );
-                                        },
-                                      );
-                                    },
-
-                                    child: const Text('Đổi mật khẩu'),
+                                            )
+                                            : null,
+                                  ),
+                                  Container(
+                                    width: 32,
+                                    height: 32,
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue.shade700,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: IconButton(
+                                      icon: const Icon(
+                                        Icons.camera_alt,
+                                        size: 18,
+                                        color: Colors.white,
+                                      ),
+                                      onPressed: () async {
+                                        await pickAvatarImage();
+                                      },
+                                    ),
                                   ),
                                 ],
                               ),
-                            ),
+                              const SizedBox(height: 16),
+
+                              // User role badge
+                              if (userRole != null)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.shade700.withOpacity(
+                                      0.1,
+                                    ),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    getRoleName(userRole),
+                                    style: TextStyle(
+                                      color: Theme.of(context).primaryColor,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              const SizedBox(height: 24),
+
+                              // Email field (readonly)
+                              TextFormField(
+                                controller: emailCtrl,
+                                readOnly: true,
+                                decoration: InputDecoration(
+                                  labelText: 'Email',
+                                  prefixIcon: Icon(
+                                    Icons.email,
+                                    color: Theme.of(context).primaryColor,
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.grey[100],
+                                  labelStyle: TextStyle(
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+
+                              // Full name field
+                              TextFormField(
+                                controller: nameCtrl,
+                                decoration: InputDecoration(
+                                  labelText: 'Họ và tên',
+                                  prefixIcon: Icon(
+                                    Icons.person,
+                                    color: Theme.of(context).primaryColor,
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.white,
+                                ),
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Vui lòng nhập họ tên';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 16),
+
+                              // Phone field
+                              TextFormField(
+                                controller: phoneCtrl,
+                                keyboardType: TextInputType.phone,
+                                decoration: InputDecoration(
+                                  labelText: 'Số điện thoại',
+                                  prefixIcon: Icon(
+                                    Icons.phone,
+                                    color: Theme.of(context).primaryColor,
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 32),
+
+                              // Save button
+                              SizedBox(
+                                width: double.infinity,
+                                height: 50,
+                                child: ElevatedButton(
+                                  onPressed: updateProfile,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.blue.shade700,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(
+                                        12,
+                                      ),
+                                    ),
+                                    elevation: 2,
+                                  ),
+                                  child: const Text(
+                                    'Lưu thay đổi',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+
+                              // Change password option
+                              const SizedBox(height: 16),
+                              TextButton(
+                                onPressed: () {
+                                  showDialog(
+                                    context: context,
+                                    builder: (context) {
+                                      final oldPassCtrl =
+                                          TextEditingController();
+                                      final newPassCtrl =
+                                          TextEditingController();
+                                      final formKey =
+                                          GlobalKey<FormState>();
+
+                                      return AlertDialog(
+                                        title: const Text('Đổi mật khẩu'),
+                                        content: Form(
+                                          key: formKey,
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              TextFormField(
+                                                controller: oldPassCtrl,
+                                                obscureText: true,
+                                                decoration:
+                                                    const InputDecoration(
+                                                      labelText:
+                                                          'Mật khẩu hiện tại',
+                                                    ),
+                                                validator:
+                                                    (val) =>
+                                                        val == null ||
+                                                                val.isEmpty
+                                                            ? 'Nhập mật khẩu hiện tại'
+                                                            : null,
+                                              ),
+                                              const SizedBox(height: 12),
+                                              TextFormField(
+                                                controller: newPassCtrl,
+                                                obscureText: true,
+                                                decoration:
+                                                    const InputDecoration(
+                                                      labelText:
+                                                          'Mật khẩu mới',
+                                                    ),
+                                                validator:
+                                                    (val) =>
+                                                        val == null ||
+                                                                val.length <
+                                                                    6
+                                                            ? 'Tối thiểu 6 ký tự'
+                                                            : null,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed:
+                                                () =>
+                                                    Navigator.pop(context),
+                                            child: const Text('Huỷ'),
+                                          ),
+                                          ElevatedButton(
+                                            onPressed: () {
+                                              if (formKey.currentState!
+                                                  .validate()) {
+                                                changePassword(
+                                                  oldPassCtrl.text,
+                                                  newPassCtrl.text,
+                                                );
+                                              }
+                                            },
+                                            child: const Text('Xác nhận'),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  );
+                                },
+                                child: const Text('Đổi mật khẩu'),
+                              ),
+                            ],
                           ),
                         ),
                       ),
                     ),
                   ),
                 ),
-      ),
+              ),
+            ),
     );
   }
 }

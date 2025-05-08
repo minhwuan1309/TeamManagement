@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using TeamManage.Data;
 using TeamManage.Models;
 using TeamManage.Models.DTO;
+using TeamManage.Services.CloudinaryConfig;
 
 namespace TeamManage.Controllers
 {
@@ -22,6 +23,7 @@ namespace TeamManage.Controllers
         {
             var issues = await _context.Issues
                         .Where(i => i.TaskItemId == taskId && !i.IsDeleted)
+                        .Include(i => i.Files)
                         .ToListAsync();
 
             return Ok(issues);
@@ -31,35 +33,53 @@ namespace TeamManage.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetIssueById(int id)
         {
-            var issue = await _context.Issues.FirstOrDefaultAsync(i => i.Id == id && !i.IsDeleted);
+            var issue = await _context.Issues
+                .Include(i => i.Files).FirstOrDefaultAsync(i => i.Id == id && !i.IsDeleted);
+            if (issue == null)
+                return NotFound("Không tìm thấy issue.");
             return Ok(issue);
         }
 
         // ====================== Create Issue ======================
         [HttpPost("task/create/{taskId}")]
-        public async Task<IActionResult> CreateIssue([FromBody] IssueDTO issueDTO, int taskId)
+        public async Task<IActionResult> CreateIssue([FromForm] string title, [FromForm] string description, int taskId, [FromForm] List<IFormFile>? files, [FromServices] CloudinaryService cloudinary)
         {
             var task = await _context.TaskItems.FirstOrDefaultAsync(t => t.Id == taskId && !t.IsDeleted);
             if (task == null)
                 return NotFound("Không tìm thấy task.");
 
-            if(string.IsNullOrWhiteSpace(issueDTO.Title))
+            
+            if(string.IsNullOrWhiteSpace(title))
                 return BadRequest("Tiêu đề không được để trống!");
-            if(string.IsNullOrWhiteSpace(issueDTO.Description))
+            if(string.IsNullOrWhiteSpace(description))
                 return BadRequest("Mô tả không được để trống!");
 
             var issue = new Issue
             {
-                
-                Title = issueDTO.Title,
-                Description = issueDTO.Description,
+                Title = title,
+                Description = description,
                 IsDeleted = false,
                 Status = ProcessStatus.None,
                 TaskItemId = taskId,
-                Image = issueDTO.Image,
                 CreatedAt = DateTime.Now,
                 UpdatedAt = DateTime.Now
             };
+            if(files != null && files.Count > 0)
+            {
+                foreach(var file in files)
+                {
+                    var uploadResult = await cloudinary.UploadFileAsync(file);
+                    if(uploadResult != null)
+                    {
+                        issue.Files.Add(new IssueFile
+                        {
+                            Url = uploadResult.Value.url,
+                            Name = file.FileName,
+                            FileType = uploadResult.Value.type
+                        });
+                    }
+                }
+            }
 
             _context.Issues.Add(issue);
             await _context.SaveChangesAsync();
@@ -74,14 +94,11 @@ namespace TeamManage.Controllers
             if (issue == null)
                 return NotFound("Không tìm thấy issue.");
 
-            if (issueDTO.Title != null && !string.IsNullOrWhiteSpace(issueDTO.Title))
-                issue.Title = issueDTO.Title;
 
             if (issueDTO.Description != null && !string.IsNullOrWhiteSpace(issueDTO.Description))
                 issue.Description = issueDTO.Description;
 
-            if (issueDTO.Image != null && !string.IsNullOrWhiteSpace(issueDTO.Image))
-                issue.Image = issueDTO.Image;
+
             issue.UpdatedAt = DateTime.Now;
 
             _context.Issues.Update(issue);

@@ -9,7 +9,7 @@ namespace TeamManage.Models
         public string Title { get; set; }
         public string Description { get; set; }
         public ProcessStatus Status { get; set; }
-        public string? Image { get; set; }
+        public ICollection<IssueFile> Files { get; set; } = new List<IssueFile>();
         public bool IsDeleted { get; set; } = false;
         [JsonIgnore]
         public TaskItem TaskItem { get; set; }

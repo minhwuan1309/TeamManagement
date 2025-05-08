@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:team_manage_frontend/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:team_manage_frontend/layouts/common_layout.dart';
 
 class EditModulePage extends StatefulWidget {
   final Map module;
@@ -18,7 +20,6 @@ class _EditModulePageState extends State<EditModulePage> {
   List<dynamic> projectMembers = [];
   List<String> selectedUserIds = [];
   bool isLoading = false;
-  final String baseUrl = 'http://localhost:5053/api';
 
   @override
   void initState() {
@@ -104,12 +105,9 @@ class _EditModulePageState extends State<EditModulePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Chỉnh sửa Module'),
-        backgroundColor: Colors.blue.shade700,
-      ),
-      body: isLoading
+    return CommonLayout(
+      title: 'Chỉnh sửa Module',
+      child: isLoading
           ? const Center(child: CircularProgressIndicator())
           : Padding(
               padding: const EdgeInsets.all(16),

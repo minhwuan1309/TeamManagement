@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:team_manage_frontend/api_service.dart';
+import 'package:team_manage_frontend/layouts/common_layout.dart';
 
 class CreateProjectPage extends StatefulWidget {
   const CreateProjectPage({super.key});
@@ -23,7 +25,6 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
   List<Map<String, dynamic>> members = [];
 
   final dateFormat = DateFormat('dd/MM/yyyy');
-  final String baseUrl = 'http://localhost:5053/api';
 
   @override
   void initState() {
@@ -409,16 +410,9 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Tạo dự án mới'),
-        backgroundColor: Colors.blue,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-      ),
-      body: Container(
+    return CommonLayout(
+      title: 'Tạo dự án mới',
+      child: Container(
         color: Colors.grey.shade100,
         child: Form(
           key: _formKey,

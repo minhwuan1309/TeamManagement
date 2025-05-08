@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:team_manage_frontend/api_service.dart';
+import 'package:team_manage_frontend/layouts/common_layout.dart';
 import 'package:team_manage_frontend/screens/project/project_detail_page.dart';
 
 class ProjectPage extends StatefulWidget {
@@ -16,8 +18,6 @@ class _ProjectPageState extends State<ProjectPage> {
   bool isLoading = true;
   List<dynamic> allProjects = [];
   bool showDeletedOnly = false;
-
-  final String baseUrl = 'http://localhost:5053/api';
 
   @override
   void initState() {
@@ -337,13 +337,9 @@ class _ProjectPageState extends State<ProjectPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Danh sách dự án'),
-        backgroundColor: Colors.blue.shade700,
-        elevation: 2,
-      ),
-      body: Container(
+    return CommonLayout(
+      title: 'Dự án',
+      child: Container(
         decoration: BoxDecoration(color: Colors.grey[50]),
         child: isLoading
             ? const Center(child: CircularProgressIndicator())

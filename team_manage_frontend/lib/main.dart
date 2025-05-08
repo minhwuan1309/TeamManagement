@@ -8,6 +8,7 @@ import 'package:team_manage_frontend/screens/modules/create_module_page.dart';
 import 'package:team_manage_frontend/screens/modules/module_page.dart';
 import 'package:team_manage_frontend/screens/project/create_project_page.dart';
 import 'package:team_manage_frontend/screens/project/project_page.dart';
+import 'package:team_manage_frontend/screens/tasks/task_page.dart';
 import 'screens/home_screen.dart';
 import 'screens/user/create_user_page.dart';
 import 'screens/user/profile_screen.dart';
@@ -46,15 +47,18 @@ class MyApp extends StatelessWidget {
         //Module
         '/module': (context) => const ModulePage(),
         '/module/create': (context) {
-          final args = ModalRoute.of(context)?.settings.arguments;
-          if (args is int) {
-            return CreateModulePage(projectId: args);
-          } else {
-            return const Scaffold(
-              body: Center(child: Text("Lỗi: projectId không hợp lệ")),
-            );
-          }
-        },
+            final args = ModalRoute.of(context)?.settings.arguments;
+            if (args is int) {
+              return CreateModulePage(projectId: args);
+            } else {
+              return const Scaffold(
+                body: Center(child: Text("Lỗi: projectId không hợp lệ")),
+              );
+            }
+          },
+        
+        //Tasks
+        '/task': (context) => const TaskPage(),
 
 
       },

@@ -2,6 +2,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:team_manage_frontend/api_service.dart';
+import 'package:team_manage_frontend/layouts/common_layout.dart';
+
 
 class CreateModulePage extends StatefulWidget {
   final int projectId;
@@ -18,7 +21,6 @@ class _CreateModulePageState extends State<CreateModulePage> {
   List<Map<String, dynamic>> selectedMembers = [];
   bool isSubmitting = false;
 
-  final String baseUrl = 'http://localhost:5053/api';
 
   @override
   void initState() {
@@ -95,12 +97,9 @@ class _CreateModulePageState extends State<CreateModulePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Tạo Module'),
-        backgroundColor: Colors.blue.shade700,
-      ),
-      body: Padding(
+    return CommonLayout(
+      title: 'Tạo Module',
+      child: Padding(
         padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,

@@ -23,13 +23,14 @@ namespace TeamManage.Controllers
         public async Task<IActionResult> GetModulesByProject([FromQuery] int projectId)
         {
             var modules = await _context.Modules
-                .Where(m => m.ProjectId == projectId && !m.IsDeleted)
+                .Where(m => m.ProjectId == projectId)
                 .Select(m => new SimpleModuleDTO
                 {
                     Id = m.Id,
                     Name = m.Name,
                     Status = m.Status,
-                    MemberCount = m.ModuleMembers.Count(mb => !mb.IsDeleted)
+                    MemberCount = m.ModuleMembers.Count(mb => !mb.IsDeleted),
+                    IsDeleted = m.IsDeleted
                 })
                 .ToListAsync();
 
@@ -45,7 +46,7 @@ namespace TeamManage.Controllers
                         .ThenInclude(mb => mb.User)
                     .Include(t => t.Tasks)
                         .ThenInclude(t => t.AssignedUser)
-                    .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted);
+                    .FirstOrDefaultAsync(x => x.Id == id);
             if (module == null)
                 return NotFound("Không tìm thấy module.");
 
@@ -184,6 +185,19 @@ namespace TeamManage.Controllers
             return Ok(module.IsDeleted
                 ? "Đã xóa module."
                 : "Đã khôi phục module.");
+        }
+
+        [HttpDelete("hard-delete/{id}")]
+        public async Task<IActionResult> HardDeleteModule(int id)
+        {
+            var module = await _context.Modules.FirstOrDefaultAsync(x => x.Id == id);
+            if (module == null)
+                return NotFound("Không tìm thấy module.");
+
+            _context.Modules.Remove(module);
+            await _context.SaveChangesAsync();
+
+            return Ok("Module đã được xóa.");
         }
 
         // ====================== Update Modules Status ======================
