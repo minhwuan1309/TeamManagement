@@ -106,71 +106,191 @@ class _CreateModulePageState extends State<CreateModulePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Tên Module',
-                  border: OutlineInputBorder(),
+              // Card cho form thông tin chính
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                validator: (value) => value == null || value.isEmpty ? 'Không được để trống' : null,
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Thành viên Module:',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              projectMembers.isEmpty
-                  ? const Center(child: Text('Đang tải danh sách thành viên...'))
-                  : Expanded(
-                      child: ListView.builder(
-                        itemCount: projectMembers.length,
-                        itemBuilder: (context, index) {
-                          final member = projectMembers[index];
-                          final userId = member['userId'];
-                          final fullName = member['fullName'] ?? 'Không tên';
-                          final avatar = member['avatar'];
-                          
-                          final isSelected = selectedMembers.any((selected) => selected['userId'] == userId);
-
-                          return CheckboxListTile(
-                            value: isSelected,
-                            onChanged: (value) {
-                              setState(() {
-                                if (value == true) {
-                                  selectedMembers.add({
-                                    'userId': userId,
-                                    'fullName': fullName,
-                                    'avatar': avatar,
-                                  });
-                                } else {
-                                  selectedMembers.removeWhere((selected) => selected['userId'] == userId);
-                                }
-                              });
-                            },
-                            title: Text(fullName),
-                            secondary: avatar != null && avatar.isNotEmpty
-                                ? CircleAvatar(backgroundImage: NetworkImage(avatar))
-                                : const CircleAvatar(child: Icon(Icons.person)),
-                          );
-                        },
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.view_module, color: Colors.blue.shade700),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Thông tin Module',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _nameController,
+                        decoration: InputDecoration(
+                          labelText: 'Tên Module',
+                          hintText: 'Nhập tên module',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          prefixIcon: Icon(Icons.title, color: Colors.blue.shade700),
+                        ),
+                        validator: (value) => value == null || value.isEmpty ? 'Không được để trống' : null,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              
+              // Card cho danh sách thành viên
+              Expanded(
+                child: Card(
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.people, color: Colors.blue.shade700),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Thành viên Module',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        
+                        // Badge hiển thị số lượng thành viên đã chọn
+                        if (selectedMembers.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Chip(
+                              backgroundColor: Colors.blue.shade100,
+                              label: Text(
+                                'Đã chọn ${selectedMembers.length} thành viên',
+                                style: TextStyle(color: Colors.blue.shade700),
+                              ),
+                            ),
+                          ),
+                        
+                        // Danh sách thành viên
+                        projectMembers.isEmpty
+                            ? Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const CircularProgressIndicator(),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'Đang tải danh sách thành viên...',
+                                      style: TextStyle(color: Colors.grey.shade600),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : Expanded(
+                                child: ListView.separated(
+                                  itemCount: projectMembers.length,
+                                  separatorBuilder: (context, index) => const Divider(height: 1),
+                                  itemBuilder: (context, index) {
+                                    final member = projectMembers[index];
+                                    final userId = member['userId'];
+                                    final fullName = member['fullName'] ?? 'Không tên';
+                                    final avatar = member['avatar'];
+                                    
+                                    final isSelected = selectedMembers.any((selected) => selected['userId'] == userId);
+
+                                    return CheckboxListTile(
+                                      value: isSelected,
+                                      onChanged: (value) {
+                                        setState(() {
+                                          if (value == true) {
+                                            selectedMembers.add({
+                                              'userId': userId,
+                                              'fullName': fullName,
+                                              'avatar': avatar,
+                                            });
+                                          } else {
+                                            selectedMembers.removeWhere((selected) => selected['userId'] == userId);
+                                          }
+                                        });
+                                      },
+                                      title: Text(
+                                        fullName,
+                                        style: const TextStyle(fontWeight: FontWeight.w500),
+                                      ),
+                                      secondary: CircleAvatar(
+                                        backgroundColor: isSelected ? Colors.blue.shade100 : Colors.grey.shade200,
+                                        backgroundImage: avatar != null && avatar.isNotEmpty
+                                            ? NetworkImage(avatar)
+                                            : null,
+                                        child: avatar == null || avatar.isEmpty
+                                            ? Icon(Icons.person, color: isSelected ? Colors.blue.shade700 : Colors.grey)
+                                            : null,
+                                      ),
+                                      activeColor: Colors.blue.shade700,
+                                      dense: false,
+                                      controlAffinity: ListTileControlAffinity.trailing,
+                                    );
+                                  },
+                                ),
+                              ),
+                      ],
                     ),
-              const SizedBox(height: 12),
+                  ),
+                ),
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // Button tạo module
               SizedBox(
                 width: double.infinity,
-                child: ElevatedButton(
+                child: ElevatedButton.icon(
                   onPressed: isSubmitting ? null : _createModule,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue.shade700,
-                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    elevation: 2,
                   ),
-                  child: isSubmitting
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text(
-                          'Tạo Module',
-                          style: TextStyle(color: Colors.white, fontSize: 16),
-                        ),
+                  icon: isSubmitting 
+                      ? Container(
+                          width: 24,
+                          height: 24,
+                          padding: const EdgeInsets.all(2.0),
+                          child: const CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 3,
+                          ),
+                        )
+                      : const Icon(Icons.add_circle),
+                  label: Text(
+                    'Tạo Module',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               )
             ],

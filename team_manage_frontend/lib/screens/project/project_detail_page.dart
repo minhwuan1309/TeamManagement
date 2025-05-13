@@ -104,7 +104,7 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
     );
   }
 
-Widget buildModuleCard(dynamic module) {
+  Widget buildModuleCard(dynamic module) {
     // Chuyển đổi trạng thái từ module sang chuỗi hiển thị
     String _getStatusText(dynamic status) {
       if (status is int) {
@@ -162,7 +162,7 @@ Widget buildModuleCard(dynamic module) {
       }
       return Colors.grey;
     }
-    
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       elevation: 3,
@@ -179,7 +179,9 @@ Widget buildModuleCard(dynamic module) {
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => ModuleDetailPage.withId(moduleId: module['id'])),
+              MaterialPageRoute(
+                builder: (_) => ModuleDetailPage.withId(moduleId: module['id']),
+              ),
             );
           },
         ),
@@ -426,7 +428,8 @@ Widget buildModuleCard(dynamic module) {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => EditProjectPage(projectId: widget.projectId),
+                builder:
+                    (context) => EditProjectPage(projectId: widget.projectId),
               ),
             ).then((shouldReload) {
               if (shouldReload == true) fetchProject();
@@ -449,7 +452,7 @@ Widget buildModuleCard(dynamic module) {
           ),
       ],
       child: Container(
-        decoration: BoxDecoration(color: Colors.grey[50]),
+        decoration: BoxDecoration(color: Colors.grey[100]),
         child:
             isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -475,6 +478,10 @@ Widget buildModuleCard(dynamic module) {
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blue.shade700,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                         ),
                         child: const Text('Quay lại'),
                       ),
@@ -485,53 +492,226 @@ Widget buildModuleCard(dynamic module) {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      buildProjectInfoCard(),
-
-                      buildSectionTitle('Danh sách thành viên', Icons.people),
-
-                      if ((project!['members']?['\$values'] ?? []).isEmpty)
-                        Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Text(
-                              "Chưa có thành viên",
-                              style: TextStyle(color: Colors.grey[600]),
-                            ),
-                          ),
-                        )
-                      else
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                      // Header card with project info
+                      Card(
+                        elevation: 2,
+                        margin: const EdgeInsets.all(16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
                           child: Column(
-                            children:
-                                (project!['members']?['\$values'] ?? [])
-                                    .map<Widget>((m) => buildMemberCard(m))
-                                    .toList(),
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 32,
+                                    backgroundColor: Colors.blue[600],
+                                    child: const Icon(
+                                      Icons.folder,
+                                      color: Colors.white,
+                                      size: 36,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          project!['name'],
+                                          style: const TextStyle(
+                                            fontSize: 24,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.black87,
+                                          ),
+                                        ),
+                                        if (project!['startDate'] != null)
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                              top: 8,
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.calendar_today,
+                                                  size: 16,
+                                                  color: Colors.blue[700],
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  "Ngày bắt đầu: ${dateFormat.format(DateTime.parse(project!['startDate']))}",
+                                                  style: TextStyle(
+                                                    color: Colors.blue[700],
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const Divider(height: 32),
+                              // Description
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Icon(
+                                    Icons.description,
+                                    color: Colors.blue[800],
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          "Mô tả:",
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.blue[800],
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          project!['description'] ??
+                                              'Không có mô tả',
+                                          style: const TextStyle(
+                                            color: Colors.black87,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
+                      ),
 
-                      buildSectionTitle('Danh sách module', Icons.view_module),
-
-                      if ((project!['modules']?['\$values'] ?? []).isEmpty)
-                        Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Text(
-                              "Chưa có module",
-                              style: TextStyle(color: Colors.grey[600]),
+                      // Members section
+                      Container(
+                        color: Colors.white,
+                        margin: const EdgeInsets.only(top: 8),
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.people, color: Colors.blue[700]),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Danh sách thành viên',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.blue[700],
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                        )
-                      else
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: Column(
-                            children:
-                                (project!['modules']?['\$values'] ?? [])
-                                    .map<Widget>((m) => buildModuleCard(m))
-                                    .toList(),
-                          ),
+                            if ((project!['members']?['\$values'] ?? [])
+                                .isEmpty)
+                              Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Text(
+                                    "Chưa có thành viên",
+                                    style: TextStyle(color: Colors.grey[600]),
+                                  ),
+                                ),
+                              )
+                            else
+                              ListView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount:
+                                    (project!['members']?['\$values'] ?? [])
+                                        .length,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                ),
+                                itemBuilder: (context, index) {
+                                  final member =
+                                      (project!['members']?['\$values'] ??
+                                          [])[index];
+                                  return buildMemberCard(member);
+                                },
+                              ),
+                          ],
                         ),
+                      ),
+
+                      // Modules section
+                      Container(
+                        color: Colors.white,
+                        margin: const EdgeInsets.only(top: 8),
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.view_module,
+                                    color: Colors.blue[700],
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Danh sách module',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.blue[700],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if ((project!['modules']?['\$values'] ?? [])
+                                .isEmpty)
+                              Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Text(
+                                    "Chưa có module",
+                                    style: TextStyle(color: Colors.grey[600]),
+                                  ),
+                                ),
+                              )
+                            else
+                              ListView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount:
+                                    (project!['modules']?['\$values'] ?? [])
+                                        .length,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                ),
+                                itemBuilder: (context, index) {
+                                  final module =
+                                      (project!['modules']?['\$values'] ??
+                                          [])[index];
+                                  return buildModuleCard(module);
+                                },
+                              ),
+                          ],
+                        ),
+                      ),
 
                       const SizedBox(height: 24),
                     ],

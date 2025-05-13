@@ -13,7 +13,6 @@ namespace TeamManage.Models
         public bool IsDeleted { get; set; } = false;
         public ICollection<ProjectMember> Members { get; set; }
         public ICollection<Module> Modules { get; set; }
-        public ICollection<Workflow> Workflows { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.Now;
         public DateTime UpdatedAt { get; set; } = DateTime.Now;
     }

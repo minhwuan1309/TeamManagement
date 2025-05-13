@@ -103,84 +103,205 @@ class _EditModulePageState extends State<EditModulePage> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return CommonLayout(
-      title: 'Chỉnh sửa Module',
-      child: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(16),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    TextFormField(
-                      controller: _nameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Tên Module',
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (value) =>
-                          value == null || value.isEmpty ? 'Không được để trống' : null,
+@override
+Widget build(BuildContext context) {
+  return CommonLayout(
+    title: 'Chỉnh sửa Module',
+    child: isLoading
+        ? const Center(child: CircularProgressIndicator())
+        : Padding(
+            padding: const EdgeInsets.all(16),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Card thông tin module
+                  Card(
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    const SizedBox(height: 16),
-                    const Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'Thành viên:',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.edit_note, color: Colors.blue.shade700),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Cập nhật thông tin Module',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _nameController,
+                            decoration: InputDecoration(
+                              labelText: 'Tên Module',
+                              hintText: 'Nhập tên module',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              prefixIcon: Icon(Icons.title, color: Colors.blue.shade700),
+                            ),
+                            validator: (value) => value == null || value.isEmpty
+                                ? 'Không được để trống'
+                                : null,
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Expanded(
-                      child: ListView.builder(
-                        itemCount: projectMembers.length,
-                        itemBuilder: (context, index) {
-                          final member = projectMembers[index];
-                          final userId = member['userId'];
-                          final fullName = member['fullName'] ?? 'Không tên';
-                          final avatar = member['avatar'];
-                          final isSelected = selectedUserIds.contains(userId);
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Card danh sách thành viên
+                  Expanded(
+                    child: Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(Icons.people, color: Colors.blue.shade700),
+                                    const SizedBox(width: 8),
+                                    const Text(
+                                      'Thành viên:',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                // Hiển thị số lượng thành viên đã chọn
+                                Chip(
+                                  backgroundColor: Colors.blue.shade100,
+                                  label: Text(
+                                    'Đã chọn ${selectedUserIds.length} thành viên',
+                                    style: TextStyle(color: Colors.blue.shade700),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            Expanded(
+                              child: projectMembers.isEmpty
+                                  ? Center(
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          const CircularProgressIndicator(),
+                                          const SizedBox(height: 16),
+                                          Text(
+                                            'Đang tải danh sách thành viên...',
+                                            style: TextStyle(color: Colors.grey.shade600),
+                                          ),
+                                        ],
+                                      ),
+                                    )
+                                  : ListView.separated(
+                                      itemCount: projectMembers.length,
+                                      separatorBuilder: (context, index) => const Divider(height: 1),
+                                      itemBuilder: (context, index) {
+                                        final member = projectMembers[index];
+                                        final userId = member['userId'];
+                                        final fullName = member['fullName'] ?? 'Không tên';
+                                        final avatar = member['avatar'];
+                                        final isSelected = selectedUserIds.contains(userId);
 
-                          return CheckboxListTile(
-                            value: isSelected,
-                            onChanged: (bool? checked) {
-                              setState(() {
-                                if (checked == true) {
-                                  selectedUserIds.add(userId);
-                                } else {
-                                  selectedUserIds.remove(userId);
-                                }
-                              });
-                            },
-                            title: Text(fullName),
-                            secondary: avatar != null && avatar.isNotEmpty
-                                ? CircleAvatar(backgroundImage: NetworkImage(avatar))
-                                : const CircleAvatar(child: Icon(Icons.person)),
-                          );
-                        },
+                                        return CheckboxListTile(
+                                          value: isSelected,
+                                          onChanged: (bool? checked) {
+                                            setState(() {
+                                              if (checked == true) {
+                                                selectedUserIds.add(userId);
+                                              } else {
+                                                selectedUserIds.remove(userId);
+                                              }
+                                            });
+                                          },
+                                          title: Text(
+                                            fullName,
+                                            style: const TextStyle(fontWeight: FontWeight.w500),
+                                          ),
+                                          secondary: CircleAvatar(
+                                            backgroundColor: isSelected ? Colors.blue.shade100 : Colors.grey.shade200,
+                                            backgroundImage: avatar != null && avatar.isNotEmpty
+                                                ? NetworkImage(avatar)
+                                                : null,
+                                            child: avatar == null || avatar.isEmpty
+                                                ? Icon(Icons.person, color: isSelected ? Colors.blue.shade700 : Colors.grey)
+                                                : null,
+                                          ),
+                                          activeColor: Colors.blue.shade700,
+                                          dense: false,
+                                          controlAffinity: ListTileControlAffinity.trailing,
+                                        );
+                                      },
+                                    ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: isLoading ? null : _updateModule,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue.shade700,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Button cập nhật
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: isLoading ? null : _updateModule,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue.shade700,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Text(
-                          'Lưu thay đổi',
-                          style: TextStyle(fontSize: 16, color: Colors.white),
+                        elevation: 2,
+                      ),
+                      icon: isLoading
+                          ? Container(
+                              width: 24,
+                              height: 24,
+                              padding: const EdgeInsets.all(2.0),
+                              child: const CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 3,
+                              ),
+                            )
+                          : const Icon(Icons.save),
+                      label: Text(
+                        'Lưu thay đổi',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    )
-                  ],
-                ),
+                    ),
+                  )
+                ],
               ),
             ),
-    );
-  }
+          ),
+  );
+}
 }

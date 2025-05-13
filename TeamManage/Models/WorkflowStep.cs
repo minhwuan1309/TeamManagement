@@ -7,9 +7,8 @@
         public string StepName { get; set; }
         public int Order { get; set; }
         public bool IsDeleted { get; set; } = false;
-        public Workflow Workflow { get; set; }
+        public WorkflowStatus Status { get; set; } = WorkflowStatus.None;
+        public DateTime? CompletedAt { get; set; }
         public ICollection<WorkflowStepApproval> Approvals { get; set; }
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
-        public DateTime UpdatedAt { get; set; } = DateTime.Now;
     }
 }

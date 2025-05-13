@@ -349,75 +349,455 @@ class _ModulePageState extends State<ModulePage> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return CommonLayout(
-      title: 'Quản lý module',
-      child: Column(
-        children: [
-          const SizedBox(height: 12),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: DropdownButtonFormField<int>(
-              isExpanded: true,
-              decoration: const InputDecoration(
-                labelText: 'Chọn Project',
-                border: OutlineInputBorder(),
-              ),
-              value: selectedProjectId,
-              items:
-                  projects.map<DropdownMenuItem<int>>((project) {
+@override
+Widget build(BuildContext context) {
+  final bool isTabletOrDesktop = MediaQuery.of(context).size.width > 600;
+  
+  return CommonLayout(
+    title: 'Quản lý module',
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 16),
+        // Project selection card
+        Card(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          elevation: 2,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Chọn Project',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<int>(
+                  isExpanded: true,
+                  decoration: InputDecoration(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2),
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey.shade50,
+                  ),
+                  value: selectedProjectId,
+                  icon: const Icon(Icons.arrow_drop_down_circle_outlined),
+                  style: const TextStyle(color: Colors.black87, fontSize: 16),
+                  items: projects.map<DropdownMenuItem<int>>((project) {
                     return DropdownMenuItem<int>(
                       value: project['id'],
                       child: Text(project['name'] ?? '---'),
                     );
                   }).toList(),
-              onChanged: (value) {
-                setState(() {
-                  selectedProjectId = value;
-                });
-                if (value != null) fetchModules(value);
-              },
+                  onChanged: (value) {
+                    setState(() {
+                      selectedProjectId = value;
+                    });
+                    if (value != null) fetchModules(value);
+                  },
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 12),
-          buildFilterToggle(),
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: _onRefresh,
-              child:
-                  isLoading
-                      ? const Center(child: CircularProgressIndicator())
-                      : modules.isEmpty
-                      ? ListView(
-                        children: const [
-                          SizedBox(height: 100),
-                          Center(child: Text('Không có module nào.')),
-                        ],
-                      )
-                      : ListView(
-                        children:
-                            modules
-                                .map<Widget>(
-                                  (module) => buildModuleCard(module),
-                                )
-                                .toList(),
+        ),
+        
+        // Filter toggle with improved design
+        Card(
+          elevation: 1,
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.filter_list,
+                      color: Theme.of(context).primaryColor,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      "Bộ lọc",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
                       ),
+                    ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    const Text(
+                      "Hiển thị module đã xoá",
+                      style: TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                    Switch(
+                      value: showDeletedOnly,
+                      activeColor: Theme.of(context).primaryColor,
+                      onChanged: (val) {
+                        setState(() {
+                          showDeletedOnly = val;
+                          applyFilter();
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-        ],
-      ),
-      floatingActionButton:
-          selectedProjectId != null
-              ? FloatingActionButton(
-                onPressed: _createNewModule,
-                child: const Icon(Icons.add),
-                tooltip: 'Tạo module mới',
-                backgroundColor: Colors.blue.shade700,
-              )
-              : null,
-    );
+        ),
+        
+        // Module list with improved styling
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: _onRefresh,
+            color: Theme.of(context).primaryColor,
+            child: isLoading 
+              ? const Center(child: CircularProgressIndicator())
+              : modules.isEmpty
+                ? ListView(
+                    children: [
+                      const SizedBox(height: 100),
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.folder_open,
+                            size: 64,
+                            color: Colors.grey.shade400,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Không có module nào',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                          if (selectedProjectId != null) ...[
+                            const SizedBox(height: 24),
+                            ElevatedButton.icon(
+                              onPressed: _createNewModule,
+                              icon: const Icon(Icons.add),
+                              label: const Text('Tạo module mới'),
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  )
+                : isTabletOrDesktop 
+                  ? _buildDesktopModuleList()
+                  : _buildMobileModuleList(),
+          ),
+        ),
+      ],
+    ),
+    floatingActionButton: selectedProjectId != null && modules.isNotEmpty
+      ? FloatingActionButton(
+          onPressed: _createNewModule,
+          child: const Icon(Icons.add),
+          tooltip: 'Tạo module mới',
+          backgroundColor: Colors.blue.shade700,
+        )
+      : null,
+  );
+}
+
+// Desktop/tablet view for module list
+Widget _buildDesktopModuleList() {
+  return ListView.builder(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    itemCount: modules.length,
+    itemBuilder: (context, index) {
+      final module = modules[index];
+      final bool isDeleted = module['isDeleted'] ?? false;
+      
+      return Card(
+        elevation: 2,
+        margin: const EdgeInsets.only(bottom: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => _viewModuleDetails(module['id']),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // Status indicator and icon
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: isDeleted 
+                      ? Colors.red.shade50
+                      : _getStatusColor(module['status']).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      Icons.view_module,
+                      color: isDeleted 
+                        ? Colors.red 
+                        : _getStatusColor(module['status']),
+                      size: 28,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                
+                // Module details (expanded to take available space)
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        module['name'] ?? 'Không có tên',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          _buildStatusChip(module['status'], isDeleted),
+                          const SizedBox(width: 12),
+                          Icon(
+                            Icons.people_outline,
+                            size: 16,
+                            color: Colors.grey.shade600,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            "Thành viên: ${module['memberCount'] ?? 0}",
+                            style: TextStyle(
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Actions
+                Row(
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: () => _viewModuleDetails(module['id']),
+                      icon: const Icon(Icons.visibility_outlined, size: 18),
+                      label: const Text('Chi tiết'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).primaryColor,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    },
+  );
+}
+
+// Mobile view for module list
+Widget _buildMobileModuleList() {
+  return ListView.builder(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    itemCount: modules.length,
+    itemBuilder: (context, index) {
+      final module = modules[index];
+      final bool isDeleted = module['isDeleted'] ?? false;
+      
+      return Card(
+        elevation: 2,
+        margin: const EdgeInsets.only(bottom: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => _viewModuleDetails(module['id']),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    // Status icon
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: isDeleted 
+                          ? Colors.red.shade50
+                          : _getStatusColor(module['status']).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Center(
+                        child: Icon(
+                          Icons.view_module,
+                          color: isDeleted 
+                            ? Colors.red 
+                            : _getStatusColor(module['status']),
+                          size: 24,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    
+                    // Module name and member count
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            module['name'] ?? 'Không có tên',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.people_outline,
+                                size: 14,
+                                color: Colors.grey.shade600,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                "Thành viên: ${module['memberCount'] ?? 0}",
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    // Arrow icon
+                    Icon(
+                      Icons.arrow_forward_ios,
+                      size: 16,
+                      color: Colors.grey.shade600,
+                    ),
+                  ],
+                ),
+                
+                const SizedBox(height: 12),
+                _buildStatusChip(module['status'], isDeleted),
+              ],
+            ),
+          ),
+        ),
+      );
+    },
+  );
+}
+
+// Helper widget for status display
+Widget _buildStatusChip(dynamic status, bool isDeleted) {
+  Color bgColor;
+  Color textColor;
+  String statusText;
+  
+  if (isDeleted) {
+    bgColor = Colors.red.shade50;
+    textColor = Colors.red.shade700;
+    statusText = "Đã xoá";
+  } else {
+    final statusValue = status is int ? status : (status is String ? status.toLowerCase() : null);
+    
+    if (statusValue == 0 || statusValue == 'none') {
+      bgColor = Colors.grey.shade100;
+      textColor = Colors.grey.shade700;
+      statusText = "Chưa bắt đầu";
+    } else if (statusValue == 1 || statusValue == 'inprogress' || statusValue == 'in_progress') {
+      bgColor = Colors.blue.shade50;
+      textColor = Colors.blue.shade700;
+      statusText = "Đang tiến hành";
+    } else if (statusValue == 2 || statusValue == 'done') {
+      bgColor = Colors.green.shade50;
+      textColor = Colors.green.shade700;
+      statusText = "Hoàn thành";
+    } else {
+      bgColor = Colors.grey.shade100;
+      textColor = Colors.grey.shade700;
+      statusText = "Không xác định";
+    }
   }
+  
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+    decoration: BoxDecoration(
+      color: bgColor,
+      borderRadius: BorderRadius.circular(20),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: textColor,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          statusText,
+          style: TextStyle(
+            color: textColor,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    ),
+  );
+}
 
   @override
   void dispose() {

@@ -36,7 +36,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     setState(() => isLoading = false);
 
     if (success) {
-      Navigator.pushReplacementNamed(context, '/');
+      Navigator.pushReplacementNamed(context, '/home');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Đặt lại mật khẩu thành công")),
       );

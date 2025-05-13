@@ -18,11 +18,19 @@ class _UserPageState extends State<UserPage> {
   bool isLoading = true;
   bool showBlockedOnly = false;
   bool showDeletedOnly = false;
+  String searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     fetchUsers();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<String?> getToken() async {
@@ -59,6 +67,20 @@ class _UserPageState extends State<UserPage> {
       } else {
         users = allUsers.where((user) => user['isDeleted'] == false).toList();
       }
+
+      // Apply search filter if there's a query
+      if (searchQuery.isNotEmpty) {
+        users =
+            users.where((user) {
+              final name = (user['fullName'] ?? '').toLowerCase();
+              final email = (user['email'] ?? '').toLowerCase();
+              final phone = (user['phone'] ?? '').toLowerCase();
+              final query = searchQuery.toLowerCase();
+              return name.contains(query) ||
+                  email.contains(query) ||
+                  phone.contains(query);
+            }).toList();
+      }
     });
   }
 
@@ -81,12 +103,13 @@ class _UserPageState extends State<UserPage> {
                 onPressed: () => Navigator.pop(context, false),
                 child: const Text('Huỷ'),
               ),
-              TextButton(
+              ElevatedButton(
                 onPressed: () => Navigator.pop(context, true),
-                child: Text(
-                  isActive ? 'Khoá' : 'Mở khoá',
-                  style: TextStyle(color: isActive ? Colors.red : Colors.green),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isActive ? Colors.red : Colors.green,
+                  foregroundColor: Colors.white,
                 ),
+                child: Text(isActive ? 'Khoá' : 'Mở khoá'),
               ),
             ],
           ),
@@ -114,9 +137,13 @@ class _UserPageState extends State<UserPage> {
                 onPressed: () => Navigator.pop(context, false),
                 child: const Text('Huỷ'),
               ),
-              TextButton(
+              ElevatedButton(
                 onPressed: () => Navigator.pop(context, true),
-                child: const Text('Xoá', style: TextStyle(color: Colors.red)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Xoá'),
               ),
             ],
           ),
@@ -144,8 +171,12 @@ class _UserPageState extends State<UserPage> {
                 onPressed: () => Navigator.pop(context, false),
                 child: const Text('Huỷ'),
               ),
-              TextButton(
+              ElevatedButton(
                 onPressed: () => Navigator.pop(context, true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                ),
                 child: const Text('Khôi phục'),
               ),
             ],
@@ -176,12 +207,13 @@ class _UserPageState extends State<UserPage> {
                 onPressed: () => Navigator.pop(context, false),
                 child: const Text('Huỷ'),
               ),
-              TextButton(
+              ElevatedButton(
                 onPressed: () => Navigator.pop(context, true),
-                child: const Text(
-                  'Xoá vĩnh viễn',
-                  style: TextStyle(color: Colors.red),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
                 ),
+                child: const Text('Xoá vĩnh viễn'),
               ),
             ],
           ),
@@ -197,24 +229,45 @@ class _UserPageState extends State<UserPage> {
     }
   }
 
-Future<void> updateRole(String userId, int newRole) async {
-  final success = await ApiService.updateUserRole(userId, newRole);
-  if (success) {
-    fetchUsers();
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Cập nhật vai trò thành công")),
-      );
-    }
-  } else {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Thất bại khi cập nhật vai trò")),
-      );
+  Future<void> updateRole(String userId, int newRole) async {
+    final success = await ApiService.updateUserRole(userId, newRole);
+    if (success) {
+      fetchUsers();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Cập nhật vai trò thành công"),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Thất bại khi cập nhật vai trò"),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     }
   }
-}
 
+  //Get Role Color
+  Color getRoleColor(int? role) {
+    switch (role) {
+      case 0:
+        return Colors.red;
+      case 1:
+        return Colors.blue;
+      case 2:
+        return Colors.green;
+      default:
+        return Colors.grey;
+    }
+  }
 
   void showRoleDialog(dynamic user) {
     int selectedRole = user['role'] ?? 3; // Default to Viewer if null
@@ -225,61 +278,104 @@ Future<void> updateRole(String userId, int newRole) async {
         return StatefulBuilder(
           builder:
               (context, setState) => AlertDialog(
-                title: Text('Cập nhật vai trò cho ${user['fullName']}'),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                title: Text(
+                  'Cập nhật vai trò cho ${user['fullName']}',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
                 content: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     // User info section
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: CircleAvatar(
-                        backgroundColor: Theme.of(
-                          context,
-                        ).primaryColor.withOpacity(0.2),
-                        backgroundImage:
-                            (user['avatar'] != null &&
-                                    user['avatar'].isNotEmpty)
-                                ? NetworkImage(user['avatar'])
-                                : null,
-                        child:
-                            (user['avatar'] == null || user['avatar'].isEmpty)
-                                ? Text(
-                                  (user['fullName'] ?? '?')
-                                      .substring(0, 1)
-                                      .toUpperCase(),
-                                  style: TextStyle(
-                                    color: Theme.of(context).primaryColor,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                )
-                                : null,
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      title: Text(
-                        user['fullName'] ?? 'Unknown',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Text(
-                        user['email'] ?? '',
-                        style: TextStyle(color: Colors.grey[600]),
+                      child: ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: CircleAvatar(
+                          radius: 28,
+                          backgroundColor: Theme.of(
+                            context,
+                          ).primaryColor.withOpacity(0.2),
+                          backgroundImage:
+                              (user['avatar'] != null &&
+                                      user['avatar'].isNotEmpty)
+                                  ? NetworkImage(user['avatar'])
+                                  : null,
+                          child:
+                              (user['avatar'] == null || user['avatar'].isEmpty)
+                                  ? Text(
+                                    (user['fullName'] ?? '?')
+                                        .substring(0, 1)
+                                        .toUpperCase(),
+                                    style: TextStyle(
+                                      color: Theme.of(context).primaryColor,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                    ),
+                                  )
+                                  : null,
+                        ),
+                        title: Text(
+                          user['fullName'] ?? 'Unknown',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        subtitle: Text(
+                          user['email'] ?? '',
+                          style: TextStyle(color: Colors.grey[600]),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 24),
                     // Role dropdown
                     DropdownButtonFormField<int>(
                       value: selectedRole,
                       decoration: InputDecoration(
                         labelText: 'Vai trò mới',
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         filled: true,
                         fillColor: Colors.grey[100],
+                        prefixIcon: const Icon(Icons.badge),
                       ),
                       items: const [
-                        DropdownMenuItem(value: 0, child: Text('Admin')),
-                        DropdownMenuItem(value: 1, child: Text('Dev')),
-                        DropdownMenuItem(value: 2, child: Text('Tester')),
-                        DropdownMenuItem(value: 3, child: Text('Viewer')),
+                        DropdownMenuItem(
+                          value: 0,
+                          child: Text(
+                            'Admin',
+                            style: TextStyle(fontWeight: FontWeight.w500),
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: 1,
+                          child: Text(
+                            'Dev',
+                            style: TextStyle(fontWeight: FontWeight.w500),
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: 2,
+                          child: Text(
+                            'Tester',
+                            style: TextStyle(fontWeight: FontWeight.w500),
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: 3,
+                          child: Text(
+                            'Viewer',
+                            style: TextStyle(fontWeight: FontWeight.w500),
+                          ),
+                        ),
                       ],
                       onChanged: (value) {
                         if (value != null) {
@@ -294,20 +390,24 @@ Future<void> updateRole(String userId, int newRole) async {
                     onPressed: () => Navigator.pop(context),
                     child: const Text('Huỷ'),
                   ),
-                  TextButton(
+                  ElevatedButton.icon(
                     onPressed: () {
                       Navigator.pop(context);
                       updateRole(user['id'], selectedRole);
                     },
-                    style: TextButton.styleFrom(
+                    style: ElevatedButton.styleFrom(
                       backgroundColor: Theme.of(context).primaryColor,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,
                         vertical: 12,
                       ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
-                    child: const Text('Cập nhật'),
+                    icon: const Icon(Icons.check),
+                    label: const Text('Cập nhật'),
                   ),
                 ],
               ),
@@ -316,49 +416,129 @@ Future<void> updateRole(String userId, int newRole) async {
     );
   }
 
-  Widget buildFilterToggle() {
-    return Card(
-      elevation: 2,
+  Widget buildFilterSection() {
+    return Container(
       margin: const EdgeInsets.all(16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            const Text(
-              "Account bị khoá",
-              style: TextStyle(fontWeight: FontWeight.w500),
-            ),
-            Switch(
-              value: showBlockedOnly,
-              activeColor: Theme.of(context).primaryColor,
-              onChanged: (value) {
-                setState(() {
-                  showBlockedOnly = value;
-                  if (value) showDeletedOnly = false; // không cho bật cả 2
-                  applyFilter();
-                });
-              },
-            ),
-            const SizedBox(width: 20),
-            const Text(
-              "Account đã xoá",
-              style: TextStyle(fontWeight: FontWeight.w500),
-            ),
-            Switch(
-              value: showDeletedOnly,
-              activeColor: Theme.of(context).primaryColor,
-              onChanged: (value) {
-                setState(() {
-                  showDeletedOnly = value;
-                  if (value) showBlockedOnly = false; // không cho bật cả 2
-                  applyFilter();
-                });
-              },
-            ),
-          ],
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Bộ lọc',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Tìm kiếm theo tên, email, số điện thoại...',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon:
+                        searchQuery.isNotEmpty
+                            ? IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() {
+                                  searchQuery = '';
+                                  applyFilter();
+                                });
+                              },
+                            )
+                            : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey[300]!),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey[300]!),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).primaryColor,
+                      ),
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  onChanged: (value) {
+                    setState(() {
+                      searchQuery = value;
+                      applyFilter();
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
+          Row(
+            children: [
+              const SizedBox(width: 16),
+              // Filter toggle buttons
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: Row(
+                  children: [
+                    // Blocked toggle
+                    FilterChip(
+                      label: Text(
+                        'Bị khoá',
+                        style: TextStyle(
+                          color:
+                              showBlockedOnly ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                      selected: showBlockedOnly,
+                      checkmarkColor: Colors.white,
+                      selectedColor: Theme.of(context).primaryColor,
+                      backgroundColor: Colors.transparent,
+                      onSelected: (value) {
+                        setState(() {
+                          showBlockedOnly = value;
+                          if (value) showDeletedOnly = false;
+                          applyFilter();
+                        });
+                      },
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                    ),
+                    const SizedBox(width: 8),
+                    // Deleted toggle
+                    FilterChip(
+                      label: Text(
+                        'Đã xoá',
+                        style: TextStyle(
+                          color:
+                              showDeletedOnly ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                      selected: showDeletedOnly,
+                      checkmarkColor: Colors.white,
+                      selectedColor: Colors.red,
+                      backgroundColor: Colors.transparent,
+                      onSelected: (value) {
+                        setState(() {
+                          showDeletedOnly = value;
+                          if (value) showBlockedOnly = false;
+                          applyFilter();
+                        });
+                      },
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -370,8 +550,8 @@ Future<void> updateRole(String userId, int newRole) async {
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -379,29 +559,33 @@ Future<void> updateRole(String userId, int newRole) async {
           children: [
             Row(
               children: [
-                CircleAvatar(
-                  radius: 24,
-                  backgroundColor: Theme.of(
-                    context,
-                  ).primaryColor.withOpacity(0.2),
-                  backgroundImage:
-                      (avatar != null && avatar.isNotEmpty)
-                          ? NetworkImage(avatar)
-                          : null,
-                  child:
-                      (avatar == null || avatar.isEmpty)
-                          ? Text(
-                            (user['fullName'] ?? '?')
-                                .substring(0, 1)
-                                .toUpperCase(),
-                            style: TextStyle(
-                              color: Theme.of(context).primaryColor,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          )
-                          : null,
+                Hero(
+                  tag: 'avatar-${user['id']}',
+                  child: CircleAvatar(
+                    radius: 28,
+                    backgroundColor: Theme.of(
+                      context,
+                    ).primaryColor.withOpacity(0.2),
+                    backgroundImage:
+                        (avatar != null && avatar.isNotEmpty)
+                            ? NetworkImage(avatar)
+                            : null,
+                    child:
+                        (avatar == null || avatar.isEmpty)
+                            ? Text(
+                              (user['fullName'] ?? '?')
+                                  .substring(0, 1)
+                                  .toUpperCase(),
+                              style: TextStyle(
+                                color: Theme.of(context).primaryColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                            )
+                            : null,
+                  ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -418,16 +602,48 @@ Future<void> updateRole(String userId, int newRole) async {
                         user['email'] ?? '',
                         style: TextStyle(color: Colors.grey[600]),
                       ),
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color:
+                              isDeleted
+                                  ? Colors.red.withOpacity(0.1)
+                                  : (isActive
+                                      ? Colors.green.withOpacity(0.1)
+                                      : Colors.orange.withOpacity(0.1)),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          isDeleted
+                              ? 'Đã xoá'
+                              : (isActive ? 'Hoạt động' : 'Bị khoá'),
+                          style: TextStyle(
+                            color:
+                                isDeleted
+                                    ? Colors.red
+                                    : (isActive ? Colors.green : Colors.orange),
+                            fontWeight: FontWeight.w500,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
                 PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   onSelected: (value) {
                     if (value == 'block') toggleBlock(user['id']);
                     if (value == 'delete') deleteUser(user['id']);
                     if (value == 'restore') restoreUser(user['id']);
                     if (value == 'hardDelete') hardDeleteUser(user['id']);
-                    if (value == 'role_admin') updateRole(user['id'], 0);
                     if (value == 'update_role') showRoleDialog(user);
                   },
                   itemBuilder: (context) {
@@ -498,7 +714,7 @@ Future<void> updateRole(String userId, int newRole) async {
                                 size: 20,
                               ),
                               SizedBox(width: 8),
-                              Text('Cập nhật Role'),
+                              Text('Cập nhật vai trò'),
                             ],
                           ),
                         ),
@@ -514,14 +730,11 @@ Future<void> updateRole(String userId, int newRole) async {
               'Điện thoại',
               user['phone'] ?? 'Chưa cập nhật',
             ),
-            buildInfoRow(Icons.badge, 'Vai trò', getRoleName(user['role'])),
             buildInfoRow(
-              isActive ? Icons.check_circle : Icons.block,
-              'Trạng thái',
-              isDeleted ? 'Đã xoá' : (isActive ? 'Hoạt động' : 'Bị khoá'),
-              isDeleted
-                  ? Colors.red
-                  : (isActive ? Colors.green : Colors.orange),
+              Icons.badge,
+              'Vai trò',
+              getRoleName(user['role']),
+              getRoleColor(user['role']),
             ),
           ],
         ),
@@ -536,11 +749,24 @@ Future<void> updateRole(String userId, int newRole) async {
     Color? iconColor,
   ]) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: iconColor ?? Colors.grey[600]),
-          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: (iconColor ?? Theme.of(context).primaryColor).withOpacity(
+                0.1,
+              ),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              icon,
+              size: 20,
+              color: iconColor ?? Theme.of(context).primaryColor,
+            ),
+          ),
+          const SizedBox(width: 12),
           Text(
             '$label: ',
             style: TextStyle(
@@ -551,7 +777,10 @@ Future<void> updateRole(String userId, int newRole) async {
           Expanded(
             child: Text(
               value,
-              style: TextStyle(color: iconColor ?? Colors.grey[800]),
+              style: TextStyle(
+                color: iconColor ?? Colors.grey[800],
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ],
@@ -561,77 +790,70 @@ Future<void> updateRole(String userId, int newRole) async {
 
   Widget buildDesktopTable() {
     return Card(
-      margin: const EdgeInsets.all(16),
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: DataTable(
             columnSpacing: 20,
-            headingRowColor: MaterialStateProperty.all(
-              Colors.blue.shade700.withOpacity(0.1),
+            horizontalMargin: 20,
+            headingTextStyle: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
             ),
-            columns: [
+            headingRowColor: MaterialStateProperty.all(
+              Theme.of(context).primaryColor,
+            ),
+            dataRowColor: MaterialStateProperty.resolveWith<Color?>((
+              Set<MaterialState> states,
+            ) {
+              if (states.contains(MaterialState.selected)) {
+                return Theme.of(context).colorScheme.primary.withOpacity(0.08);
+              }
+              if (states.contains(MaterialState.hovered)) {
+                return Theme.of(context).colorScheme.primary.withOpacity(0.04);
+              }
+              return null;
+            }),
+            border: TableBorder(borderRadius: BorderRadius.circular(12)),
+            columns: const [
               DataColumn(
-                label: Container(
+                label: SizedBox(
                   width: 150,
-                  child: const Text(
-                    'Họ tên',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center,
-                  ),
+                  child: Text('Họ tên', textAlign: TextAlign.center),
                 ),
               ),
               DataColumn(
-                label: Container(
+                label: SizedBox(
                   width: 200,
-                  child: const Text(
-                    'Email',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center,
-                  ),
+                  child: Text('Email', textAlign: TextAlign.center),
                 ),
               ),
               DataColumn(
-                label: Container(
+                label: SizedBox(
                   width: 120,
-                  child: const Text(
-                    'Điện thoại',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center,
-                  ),
+                  child: Text('Điện thoại', textAlign: TextAlign.center),
                 ),
               ),
               DataColumn(
-                label: Container(
+                label: SizedBox(
                   width: 100,
-                  child: const Text(
-                    'Vai trò',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center,
-                  ),
+                  child: Text('Vai trò', textAlign: TextAlign.center),
                 ),
               ),
               DataColumn(
-                label: Container(
+                label: SizedBox(
                   width: 120,
-                  child: const Text(
-                    'Trạng thái',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center,
-                  ),
+                  child: Text('Trạng thái', textAlign: TextAlign.center),
                 ),
               ),
               DataColumn(
-                label: Container(
-                  width: 120,
-                  child: const Text(
-                    'Hành động',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center,
-                  ),
+                label: SizedBox(
+                  width: 150,
+                  child: Text('Hành động', textAlign: TextAlign.center),
                 ),
               ),
             ],
@@ -639,42 +861,68 @@ Future<void> updateRole(String userId, int newRole) async {
                 users.map((user) {
                   final bool isActive = user['isActive'] ?? true;
                   final bool isDeleted = user['isDeleted'] ?? false;
+                  final String? avatar = user['avatar'];
 
                   return DataRow(
                     cells: [
                       DataCell(
-                        Center(
-                          child: Text(
-                            user['fullName'] ?? '',
-                            style: const TextStyle(fontWeight: FontWeight.w500),
-                            textAlign: TextAlign.center,
-                          ),
+                        Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 16,
+                              backgroundColor: Theme.of(
+                                context,
+                              ).primaryColor.withOpacity(0.2),
+                              backgroundImage:
+                                  (avatar != null && avatar.isNotEmpty)
+                                      ? NetworkImage(avatar)
+                                      : null,
+                              child:
+                                  (avatar == null || avatar.isEmpty)
+                                      ? Text(
+                                        (user['fullName'] ?? '?')
+                                            .substring(0, 1)
+                                            .toUpperCase(),
+                                        style: TextStyle(
+                                          color: Theme.of(context).primaryColor,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
+                                        ),
+                                      )
+                                      : null,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              user['fullName'] ?? '',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
+                      DataCell(Text(user['email'] ?? '')),
+                      DataCell(Text(user['phone'] ?? 'Chưa cập nhật')),
                       DataCell(
-                        Center(
-                          child: Text(
-                            user['email'] ?? '',
-                            textAlign: TextAlign.center,
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
                           ),
-                        ),
-                      ),
-                      DataCell(
-                        Center(
-                          child: Text(
-                            user['phone'] ?? '',
-                            textAlign: TextAlign.center,
+                          decoration: BoxDecoration(
+                            color: getRoleColor(user['role']).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                        ),
-                      ),
-                      DataCell(
-                        Center(
                           child: Text(
                             getRoleName(user['role']),
-                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: getRoleColor(user['role']),
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
                       ),
+                      // Cột: Trạng thái
                       DataCell(
                         Center(
                           child: Container(
@@ -683,11 +931,12 @@ Future<void> updateRole(String userId, int newRole) async {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: isDeleted
-                                  ? Colors.red.withOpacity(0.2)
-                                  : (isActive
-                                      ? Colors.green.withOpacity(0.2)
-                                      : Colors.orange.withOpacity(0.2)),
+                              color:
+                                  isDeleted
+                                      ? Colors.red.withOpacity(0.1)
+                                      : (isActive
+                                          ? Colors.green.withOpacity(0.1)
+                                          : Colors.orange.withOpacity(0.1)),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
@@ -695,9 +944,12 @@ Future<void> updateRole(String userId, int newRole) async {
                                   ? 'Đã xoá'
                                   : (isActive ? 'Hoạt động' : 'Bị khoá'),
                               style: TextStyle(
-                                color: isDeleted
-                                    ? Colors.red
-                                    : (isActive ? Colors.green : Colors.orange),
+                                color:
+                                    isDeleted
+                                        ? Colors.red
+                                        : (isActive
+                                            ? Colors.green
+                                            : Colors.orange),
                                 fontWeight: FontWeight.w500,
                               ),
                               textAlign: TextAlign.center,
@@ -705,31 +957,66 @@ Future<void> updateRole(String userId, int newRole) async {
                           ),
                         ),
                       ),
+
+                      // Cột: Hành động
                       DataCell(
-                        Center(
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              IconButton(
-                                icon: Icon(
-                                  isActive ? Icons.block : Icons.check_circle,
-                                  color: isActive ? Colors.red : Colors.green,
-                                ),
-                                tooltip: isActive ? 'Khoá người dùng' : 'Mở khoá người dùng',
-                                onPressed: () => toggleBlock(user['id']),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.delete, color: Colors.red),
-                                tooltip: 'Xoá người dùng',
-                                onPressed: () => deleteUser(user['id']),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.manage_accounts, color: Colors.blue),
-                                tooltip: 'Vai trò',
-                                onPressed: () => showRoleDialog(user),
-                              ),
-                            ],
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children:
+                              isDeleted
+                                  ? [
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.restore,
+                                        color: Colors.green,
+                                      ),
+                                      tooltip: 'Khôi phục người dùng',
+                                      onPressed: () => restoreUser(user['id']),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.delete_forever,
+                                        color: Colors.red,
+                                      ),
+                                      tooltip: 'Xoá vĩnh viễn',
+                                      onPressed:
+                                          () => hardDeleteUser(user['id']),
+                                    ),
+                                  ]
+                                  : [
+                                    IconButton(
+                                      icon: Icon(
+                                        isActive
+                                            ? Icons.block
+                                            : Icons.check_circle,
+                                        color:
+                                            isActive
+                                                ? Colors.red
+                                                : Colors.green,
+                                      ),
+                                      tooltip:
+                                          isActive
+                                              ? 'Khoá người dùng'
+                                              : 'Mở khoá người dùng',
+                                      onPressed: () => toggleBlock(user['id']),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.delete,
+                                        color: Colors.red,
+                                      ),
+                                      tooltip: 'Xoá người dùng',
+                                      onPressed: () => deleteUser(user['id']),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.manage_accounts,
+                                        color: Colors.blue,
+                                      ),
+                                      tooltip: 'Cập nhật vai trò',
+                                      onPressed: () => showRoleDialog(user),
+                                    ),
+                                  ],
                         ),
                       ),
                     ],
@@ -765,7 +1052,7 @@ Future<void> updateRole(String userId, int newRole) async {
                 ? const Center(child: CircularProgressIndicator())
                 : Column(
                   children: [
-                    buildFilterToggle(),
+                    buildFilterSection(),
                     Expanded(
                       child: LayoutBuilder(
                         builder: (context, constraints) {

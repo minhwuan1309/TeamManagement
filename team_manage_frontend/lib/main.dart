@@ -29,11 +29,10 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(primarySwatch: Colors.blue),
       initialRoute: '/login',
       routes: {
-        //Auth - User
         '/login': (context) => const LoginScreen(),
         '/verify-email': (context) => const VerifyEmailScreen(),
         '/register': (context) => const RegisterScreen(),
-        '/': (context) => const HomeScreen(),
+        '/home': (context) => const HomeScreen(),
         '/user': (context) => const UserPage(),
         '/user/create': (context) => const CreateUserPage(),
         '/profile': (context) => const ProfileScreen(),

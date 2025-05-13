@@ -34,7 +34,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Xác minh thành công')));
-      Navigator.pushReplacementNamed(context, '/');
+      Navigator.pushReplacementNamed(context, '/login');
     } else {
       setState(() {
         errorMessage = 'Mã xác thực không đúng hoặc đã hết hạn.';

@@ -14,4 +14,12 @@
         InProgress,
         Done
     }
+
+    public enum WorkflowStatus
+    {
+        None,
+        InProgress,
+        Testing,
+        Done
+    }
 }

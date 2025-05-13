@@ -88,7 +88,7 @@ class _ProjectPageState extends State<ProjectPage> {
 
   Widget buildProjectMobileCard(dynamic project) {
     final bool isDeleted = project['isDeleted'] ?? false;
-    
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       elevation: 3,
@@ -102,7 +102,9 @@ class _ProjectPageState extends State<ProjectPage> {
               children: [
                 CircleAvatar(
                   radius: 24,
-                  backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
+                  backgroundColor: Theme.of(
+                    context,
+                  ).primaryColor.withOpacity(0.2),
                   child: Icon(
                     Icons.folder,
                     color: Theme.of(context).primaryColor,
@@ -138,7 +140,9 @@ class _ProjectPageState extends State<ProjectPage> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => ProjectDetailPage(projectId: project['id']),
+                        builder:
+                            (context) =>
+                                ProjectDetailPage(projectId: project['id']),
                       ),
                     ).then((shouldRefresh) {
                       if (shouldRefresh == true) fetchProjects();
@@ -261,74 +265,80 @@ class _ProjectPageState extends State<ProjectPage> {
                 ),
               ),
             ],
-            rows: projects.map((project) {
-              final bool isDeleted = project['isDeleted'] ?? false;
+            rows:
+                projects.map((project) {
+                  final bool isDeleted = project['isDeleted'] ?? false;
 
-              return DataRow(
-                cells: [
-                  DataCell(
-                    Text(
-                      project['name'] ?? '',
-                      style: const TextStyle(fontWeight: FontWeight.w500),
-                    ),
-                  ),
-                  DataCell(
-                    Text(
-                      project['startDate']?.split('T')[0] ?? '---',
-                    ),
-                  ),
-                  DataCell(
-                    Text(
-                      project['description'] ?? '',
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 2,
-                    ),
-                  ),
-                  DataCell(
-                    Center(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isDeleted
-                              ? Colors.red.withOpacity(0.2)
-                              : Colors.green.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          isDeleted ? 'Đã xoá' : 'Hoạt động',
-                          style: TextStyle(
-                            color: isDeleted ? Colors.red : Colors.green,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          textAlign: TextAlign.center,
+                  return DataRow(
+                    cells: [
+                      DataCell(
+                        Text(
+                          project['name'] ?? '',
+                          style: const TextStyle(fontWeight: FontWeight.w500),
                         ),
                       ),
-                    ),
-                  ),
-                  DataCell(
-                    Center(
-                      child: IconButton(
-                        icon: const Icon(Icons.visibility, color: Colors.blue),
-                        tooltip: 'Xem chi tiết',
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ProjectDetailPage(projectId: project['id']),
+                      DataCell(
+                        Text(project['startDate']?.split('T')[0] ?? '---'),
+                      ),
+                      DataCell(
+                        Text(
+                          project['description'] ?? '',
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 2,
+                        ),
+                      ),
+                      DataCell(
+                        Center(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
                             ),
-                          ).then((shouldRefresh) {
-                            if (shouldRefresh == true) fetchProjects();
-                          });
-                        },
+                            decoration: BoxDecoration(
+                              color:
+                                  isDeleted
+                                      ? Colors.red.withOpacity(0.2)
+                                      : Colors.green.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              isDeleted ? 'Đã xoá' : 'Hoạt động',
+                              style: TextStyle(
+                                color: isDeleted ? Colors.red : Colors.green,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                ],
-              );
-            }).toList(),
+                      DataCell(
+                        Center(
+                          child: IconButton(
+                            icon: const Icon(
+                              Icons.visibility,
+                              color: Colors.blue,
+                            ),
+                            tooltip: 'Xem chi tiết',
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) => ProjectDetailPage(
+                                        projectId: project['id'],
+                                      ),
+                                ),
+                              ).then((shouldRefresh) {
+                                if (shouldRefresh == true) fetchProjects();
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                }).toList(),
           ),
         ),
       ),
@@ -341,24 +351,391 @@ class _ProjectPageState extends State<ProjectPage> {
       title: 'Dự án',
       child: Container(
         decoration: BoxDecoration(color: Colors.grey[50]),
-        child: isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : Column(
-                children: [
-                  buildFilterToggle(),
-                  Expanded(
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        return constraints.maxWidth < 600
-                            ? ListView(
-                                children: projects.map(buildProjectMobileCard).toList(),
-                              )
-                            : buildDesktopTable();
-                      },
+        child:
+            isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : Column(
+                  children: [
+                    // Filter Card with improved design
+                    Card(
+                      elevation: 2,
+                      margin: const EdgeInsets.all(16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              "Bộ lọc",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                // Search field
+                                Expanded(
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[100],
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: TextField(
+                                      decoration: InputDecoration(
+                                        hintText: 'Tìm kiếm dự án...',
+                                        prefixIcon: const Icon(Icons.search),
+                                        border: InputBorder.none,
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              vertical: 12,
+                                            ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                // Show deleted toggle
+                                Row(
+                                  children: [
+                                    const Text(
+                                      "Hiển thị đã xoá",
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    Switch(
+                                      value: showDeletedOnly,
+                                      activeColor:
+                                          Theme.of(context).primaryColor,
+                                      onChanged: (val) {
+                                        setState(() {
+                                          showDeletedOnly = val;
+                                          applyFilter();
+                                        });
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
-                ],
-              ),
+
+                    // Projects list/table with responsive layout
+                    Expanded(
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          if (constraints.maxWidth < 600) {
+                            // Mobile view - cards
+                            return projects.isEmpty
+                                ? Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.folder_off,
+                                        size: 64,
+                                        color: Colors.grey[400],
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        showDeletedOnly
+                                            ? "Không có dự án nào đã xoá"
+                                            : "Chưa có dự án nào",
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                                : ListView.builder(
+                                  padding: const EdgeInsets.only(
+                                    bottom: 80,
+                                  ), // Space for FAB
+                                  itemCount: projects.length,
+                                  itemBuilder:
+                                      (context, index) =>
+                                          buildProjectMobileCard(
+                                            projects[index],
+                                          ),
+                                );
+                          } else {
+                            // Desktop view - table
+                            return projects.isEmpty
+                                ? Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.folder_off,
+                                        size: 72,
+                                        color: Colors.grey[400],
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        showDeletedOnly
+                                            ? "Không có dự án nào đã xoá"
+                                            : "Chưa có dự án nào",
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                                : Card(
+                                  margin: const EdgeInsets.fromLTRB(
+                                    16,
+                                    0,
+                                    16,
+                                    16,
+                                  ),
+                                  elevation: 3,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: SingleChildScrollView(
+                                    padding: const EdgeInsets.all(16),
+                                    child: SingleChildScrollView(
+                                      scrollDirection: Axis.horizontal,
+                                      child: DataTable(
+                                        columnSpacing: 20,
+                                        headingRowColor:
+                                            MaterialStateProperty.all(
+                                              Colors.blue.shade700.withOpacity(
+                                                0.1,
+                                              ),
+                                            ),
+                                        headingTextStyle: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.black87,
+                                        ),
+                                        horizontalMargin: 12,
+                                        columns: const [
+                                          DataColumn(
+                                            label: SizedBox(
+                                              width: 200,
+                                              child: Text('Tên dự án'),
+                                            ),
+                                          ),
+                                          DataColumn(
+                                            label: SizedBox(
+                                              width: 150,
+                                              child: Text('Ngày bắt đầu'),
+                                            ),
+                                          ),
+                                          DataColumn(
+                                            label: SizedBox(
+                                              width: 250,
+                                              child: Text('Mô tả'),
+                                            ),
+                                          ),
+                                          DataColumn(
+                                            label: SizedBox(
+                                              width: 120,
+                                              child: Text('Trạng thái'),
+                                            ),
+                                          ),
+                                          DataColumn(
+                                            label: SizedBox(
+                                              width: 150,
+                                              child: Text('Thao tác'),
+                                            ),
+                                          ),
+                                        ],
+                                        rows:
+                                            projects.map((project) {
+                                              final bool isDeleted =
+                                                  project['isDeleted'] ?? false;
+
+                                              return DataRow(
+                                                cells: [
+                                                  DataCell(
+                                                    Row(
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      children: [
+                                                        CircleAvatar(
+                                                          radius: 16,
+                                                          backgroundColor:
+                                                              Theme.of(context)
+                                                                  .primaryColor
+                                                                  .withOpacity(
+                                                                    0.2,
+                                                                  ),
+                                                          child: Icon(
+                                                            Icons.folder,
+                                                            color:
+                                                                Theme.of(
+                                                                  context,
+                                                                ).primaryColor,
+                                                            size: 16,
+                                                          ),
+                                                        ),
+                                                        const SizedBox(
+                                                          width: 10,
+                                                        ),
+                                                        Text(
+                                                          project['name'] ?? '',
+                                                          style:
+                                                              const TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w500,
+                                                              ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                  DataCell(
+                                                    Text(
+                                                      project['startDate']
+                                                              ?.split('T')[0] ??
+                                                          '---',
+                                                    ),
+                                                  ),
+                                                  DataCell(
+                                                    Text(
+                                                      project['description'] ??
+                                                          '',
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                      maxLines: 2,
+                                                    ),
+                                                  ),
+                                                  DataCell(
+                                                    Center(
+                                                      child: Container(
+                                                        padding:
+                                                            const EdgeInsets.symmetric(
+                                                              horizontal: 8,
+                                                              vertical: 4,
+                                                            ),
+                                                        decoration: BoxDecoration(
+                                                          color:
+                                                              isDeleted
+                                                                  ? Colors.red
+                                                                      .withOpacity(
+                                                                        0.2,
+                                                                      )
+                                                                  : Colors.green
+                                                                      .withOpacity(
+                                                                        0.2,
+                                                                      ),
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                12,
+                                                              ),
+                                                        ),
+                                                        child: Text(
+                                                          isDeleted
+                                                              ? 'Đã xoá'
+                                                              : 'Hoạt động',
+                                                          style: TextStyle(
+                                                            color:
+                                                                isDeleted
+                                                                    ? Colors.red
+                                                                    : Colors
+                                                                        .green,
+                                                            fontWeight:
+                                                                FontWeight.w500,
+                                                          ),
+                                                          textAlign:
+                                                              TextAlign.center,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  DataCell(
+                                                    Row(
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      children: [
+                                                        IconButton(
+                                                          icon: const Icon(
+                                                            Icons.visibility,
+                                                            color: Colors.blue,
+                                                          ),
+                                                          tooltip:
+                                                              'Xem chi tiết',
+                                                          onPressed: () {
+                                                            Navigator.push(
+                                                              context,
+                                                              MaterialPageRoute(
+                                                                builder:
+                                                                    (
+                                                                      context,
+                                                                    ) => ProjectDetailPage(
+                                                                      projectId:
+                                                                          project['id'],
+                                                                    ),
+                                                              ),
+                                                            ).then((
+                                                              shouldRefresh,
+                                                            ) {
+                                                              if (shouldRefresh ==
+                                                                  true)
+                                                                fetchProjects();
+                                                            });
+                                                          },
+                                                        ),
+                                                        IconButton(
+                                                          icon: const Icon(
+                                                            Icons.edit,
+                                                            color:
+                                                                Colors.orange,
+                                                          ),
+                                                          tooltip: 'Chỉnh sửa',
+                                                          onPressed: () {
+                                                            // Implement edit logic or navigation
+                                                          },
+                                                        ),
+                                                        IconButton(
+                                                          icon: Icon(
+                                                            isDeleted
+                                                                ? Icons.restore
+                                                                : Icons.delete,
+                                                            color:
+                                                                isDeleted
+                                                                    ? Colors
+                                                                        .green
+                                                                    : Colors
+                                                                        .red,
+                                                          ),
+                                                          tooltip:
+                                                              isDeleted
+                                                                  ? 'Khôi phục'
+                                                                  : 'Xoá',
+                                                          onPressed: () {
+                                                            // Implement delete/restore logic
+                                                          },
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
+                                              );
+                                            }).toList(),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+                ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {

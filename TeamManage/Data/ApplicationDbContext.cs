@@ -7,7 +7,7 @@ namespace TeamManage.Data
     public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
-        { 
+        {
         }
 
         // ========== Main DbSet ==========
@@ -61,6 +61,13 @@ namespace TeamManage.Data
                 .HasOne(a => a.Approver)
                 .WithMany(u => u.Approvals)
                 .HasForeignKey(a => a.ApproverId);
+
+            builder.Entity<Module>()
+                .HasOne(m => m.Workflow)
+                .WithMany()
+                .HasForeignKey(m => m.WorkflowId)
+                .OnDelete(DeleteBehavior.SetNull);
+
         }
     }
 }

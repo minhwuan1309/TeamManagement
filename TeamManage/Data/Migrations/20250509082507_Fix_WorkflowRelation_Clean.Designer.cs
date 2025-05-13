@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TeamManage.Data;
 
@@ -11,9 +12,11 @@ using TeamManage.Data;
 namespace TeamManage.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250509082507_Fix_WorkflowRelation_Clean")]
+    partial class Fix_WorkflowRelation_Clean
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -567,10 +570,15 @@ namespace TeamManage.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("ProjectId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ProjectId");
 
                     b.ToTable("Workflows");
                 });
@@ -797,6 +805,13 @@ namespace TeamManage.Migrations
                     b.Navigation("Module");
                 });
 
+            modelBuilder.Entity("TeamManage.Models.Workflow", b =>
+                {
+                    b.HasOne("TeamManage.Models.Project", null)
+                        .WithMany("Workflows")
+                        .HasForeignKey("ProjectId");
+                });
+
             modelBuilder.Entity("TeamManage.Models.WorkflowStep", b =>
                 {
                     b.HasOne("TeamManage.Models.Workflow", null)
@@ -849,6 +864,8 @@ namespace TeamManage.Migrations
                     b.Navigation("Members");
 
                     b.Navigation("Modules");
+
+                    b.Navigation("Workflows");
                 });
 
             modelBuilder.Entity("TeamManage.Models.TaskItem", b =>

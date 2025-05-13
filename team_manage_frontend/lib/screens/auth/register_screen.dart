@@ -261,7 +261,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             const SizedBox(height: 16),
                             TextButton(
                               onPressed: () {
-                                Navigator.pushReplacementNamed(context, '/');
+                                Navigator.pushReplacementNamed(context, '/login');
                               },
                               child: const Text('Đã có tài khoản? Đăng nhập ngay', style: TextStyle(color: Colors.black)),
                             ),

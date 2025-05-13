@@ -121,6 +121,123 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
     );
   }
 
+  Future<void> updateTaskStatus(int taskId, String statusString) async {
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('token');
+  final headers = {'Authorization': 'Bearer $token'};
+
+  int statusValue;
+  switch (statusString.toLowerCase()) {
+    case 'none':
+      statusValue = 0;
+      break;
+    case 'inprogress':
+      statusValue = 1;
+      break;
+    case 'done':
+      statusValue = 2;
+      break;
+    default:
+      statusValue = 0;
+  }
+
+  try {
+    final res = await http.put(
+      Uri.parse('$baseUrl/task/update-status/$taskId?status=$statusValue'),
+      headers: headers,
+    );
+
+    if (res.statusCode == 200) {
+      await fetchTask(); // cập nhật lại UI
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cập nhật trạng thái thành công')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi cập nhật trạng thái: ${res.statusCode}')),
+      );
+    }
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Lỗi kết nối: $e')),
+    );
+  }
+}
+
+void _showTaskStatusUpdateDialog(String currentStatus) {
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Cập nhật trạng thái Task'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildStatusOption('none', 'Chưa bắt đầu', currentStatus),
+            _buildStatusOption('inProgress', 'Đang thực hiện', currentStatus),
+            _buildStatusOption('done', 'Hoàn thành', currentStatus),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Huỷ'),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+Widget _buildStatusOption(String status, String label, String currentStatus) {
+  final bool isSelected = currentStatus == status;
+  final Color statusColor = status == 'done'
+      ? Colors.green
+      : status == 'inProgress'
+          ? Colors.orange
+          : Colors.grey;
+
+  return InkWell(
+    onTap: () {
+      Navigator.pop(context);
+      if (currentStatus != status) {
+        updateTaskStatus(task!['id'], status);
+      }
+    },
+    child: Container(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+      decoration: BoxDecoration(
+        color: isSelected ? statusColor.withOpacity(0.2) : Colors.transparent,
+        border: Border.all(
+          color: isSelected ? statusColor : Colors.grey.shade300,
+          width: isSelected ? 2 : 1,
+        ),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+            color: isSelected ? statusColor : Colors.grey,
+          ),
+          const SizedBox(width: 12),
+          Text(
+            label,
+            style: TextStyle(
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              color: isSelected ? statusColor : Colors.black87,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -437,58 +554,51 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
     }
     
     return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            color: statusColor.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Icon(Icons.flag, size: 16, color: statusColor),
+    children: [
+      Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: statusColor.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(6),
         ),
-        const SizedBox(width: 12),
-        const Text(
-          'Trạng thái:',
-          style: TextStyle(
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: statusColor.withOpacity(0.3)),
+        child: Icon(Icons.flag, size: 16, color: statusColor),
+      ),
+      const SizedBox(width: 12),
+      const Text(
+        'Trạng thái:',
+        style: TextStyle(fontWeight: FontWeight.w500),
+      ),
+      const SizedBox(width: 8),
+      Expanded(
+        child: GestureDetector(
+          onTap: () => _showTaskStatusUpdateDialog(status),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: statusColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: statusColor.withOpacity(0.3)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(statusIcon, size: 14, color: statusColor),
+                const SizedBox(width: 6),
+                Text(
+                  statusLabel,
+                  style: TextStyle(
+                    color: statusColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      statusIcon,
-                      size: 14,
-                      color: statusColor,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      statusLabel,
-                      style: TextStyle(
-                        color: statusColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
-      ],
-    );
+      ),
+    ],
+  );
   }
 }

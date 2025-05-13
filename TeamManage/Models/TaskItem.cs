@@ -17,6 +17,9 @@ namespace TeamManage.Models
         
         public Module Module { get; set; }
         public ICollection<Issue> Issues { get; set; }
+        public int? CurrentStepId { get; set; }
+        public WorkflowStep CurrentStep { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.Now;
         public DateTime UpdatedAt { get; set; } = DateTime.Now;
     }

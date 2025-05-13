@@ -211,295 +211,577 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return CommonLayout(
       title: "Hồ sơ cá nhân",
-      child: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 500),
-                    child: Card(
-                      elevation: 4,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Form(
-                          key: _formKey,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              // Avatar section
-                              Stack(
-                                alignment: Alignment.bottomRight,
+      child:
+          isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 600),
+                      child: Card(
+                        elevation: 6,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Column(
+                          children: [
+                            // Profile Header with Avatar
+                            Container(
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Colors.blue.shade700,
+                                    Colors.blue.shade400,
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: const BorderRadius.only(
+                                  topLeft: Radius.circular(20),
+                                  topRight: Radius.circular(20),
+                                ),
+                              ),
+                              padding: const EdgeInsets.all(24),
+                              child: Column(
                                 children: [
-                                  CircleAvatar(
-                                    radius: 50,
-                                    backgroundColor: Colors.blue.shade700
-                                        .withOpacity(0.2),
-                                    backgroundImage:
-                                        _avatarBytes != null
-                                            ? MemoryImage(_avatarBytes!)
-                                            : (_selectedAvatar != null
-                                                ? FileImage(
-                                                  _selectedAvatar!,
-                                                )
-                                                : (avatarUrl != null &&
-                                                        avatarUrl!
-                                                            .isNotEmpty
-                                                    ? NetworkImage(
-                                                      avatarUrl!,
-                                                    )
-                                                    : null)),
-
-                                    child:
-                                        avatarUrl == null ||
-                                                avatarUrl!.isEmpty
-                                            ? Text(
-                                              nameCtrl.text.isNotEmpty
-                                                  ? nameCtrl.text[0]
-                                                      .toUpperCase()
-                                                  : '?',
-                                              style: TextStyle(
-                                                fontSize: 36,
-                                                fontWeight: FontWeight.bold,
-                                                color:
-                                                    Theme.of(
-                                                      context,
-                                                    ).primaryColor,
+                                  // Avatar with edit button
+                                  Stack(
+                                    alignment: Alignment.bottomRight,
+                                    children: [
+                                      Container(
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: Colors.white,
+                                            width: 4,
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withOpacity(
+                                                0.2,
                                               ),
-                                            )
-                                            : null,
-                                  ),
-                                  Container(
-                                    width: 32,
-                                    height: 32,
-                                    decoration: BoxDecoration(
-                                      color: Colors.blue.shade700,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: IconButton(
-                                      icon: const Icon(
-                                        Icons.camera_alt,
-                                        size: 18,
-                                        color: Colors.white,
-                                      ),
-                                      onPressed: () async {
-                                        await pickAvatarImage();
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-
-                              // User role badge
-                              if (userRole != null)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue.shade700.withOpacity(
-                                      0.1,
-                                    ),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Text(
-                                    getRoleName(userRole),
-                                    style: TextStyle(
-                                      color: Theme.of(context).primaryColor,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              const SizedBox(height: 24),
-
-                              // Email field (readonly)
-                              TextFormField(
-                                controller: emailCtrl,
-                                readOnly: true,
-                                decoration: InputDecoration(
-                                  labelText: 'Email',
-                                  prefixIcon: Icon(
-                                    Icons.email,
-                                    color: Theme.of(context).primaryColor,
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  filled: true,
-                                  fillColor: Colors.grey[100],
-                                  labelStyle: TextStyle(
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-
-                              // Full name field
-                              TextFormField(
-                                controller: nameCtrl,
-                                decoration: InputDecoration(
-                                  labelText: 'Họ và tên',
-                                  prefixIcon: Icon(
-                                    Icons.person,
-                                    color: Theme.of(context).primaryColor,
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  filled: true,
-                                  fillColor: Colors.white,
-                                ),
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Vui lòng nhập họ tên';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: 16),
-
-                              // Phone field
-                              TextFormField(
-                                controller: phoneCtrl,
-                                keyboardType: TextInputType.phone,
-                                decoration: InputDecoration(
-                                  labelText: 'Số điện thoại',
-                                  prefixIcon: Icon(
-                                    Icons.phone,
-                                    color: Theme.of(context).primaryColor,
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  filled: true,
-                                  fillColor: Colors.white,
-                                ),
-                              ),
-                              const SizedBox(height: 32),
-
-                              // Save button
-                              SizedBox(
-                                width: double.infinity,
-                                height: 50,
-                                child: ElevatedButton(
-                                  onPressed: updateProfile,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.blue.shade700,
-                                    foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(
-                                        12,
-                                      ),
-                                    ),
-                                    elevation: 2,
-                                  ),
-                                  child: const Text(
-                                    'Lưu thay đổi',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ),
-
-                              // Change password option
-                              const SizedBox(height: 16),
-                              TextButton(
-                                onPressed: () {
-                                  showDialog(
-                                    context: context,
-                                    builder: (context) {
-                                      final oldPassCtrl =
-                                          TextEditingController();
-                                      final newPassCtrl =
-                                          TextEditingController();
-                                      final formKey =
-                                          GlobalKey<FormState>();
-
-                                      return AlertDialog(
-                                        title: const Text('Đổi mật khẩu'),
-                                        content: Form(
-                                          key: formKey,
-                                          child: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              TextFormField(
-                                                controller: oldPassCtrl,
-                                                obscureText: true,
-                                                decoration:
-                                                    const InputDecoration(
-                                                      labelText:
-                                                          'Mật khẩu hiện tại',
+                                              blurRadius: 10,
+                                              spreadRadius: 2,
+                                            ),
+                                          ],
+                                        ),
+                                        child: CircleAvatar(
+                                          radius: 60,
+                                          backgroundColor: Colors.white
+                                              .withOpacity(0.3),
+                                          backgroundImage:
+                                              _avatarBytes != null
+                                                  ? MemoryImage(_avatarBytes!)
+                                                  : (_selectedAvatar != null
+                                                      ? FileImage(
+                                                        _selectedAvatar!,
+                                                      )
+                                                      : (avatarUrl != null &&
+                                                              avatarUrl!
+                                                                  .isNotEmpty
+                                                          ? NetworkImage(
+                                                            avatarUrl!,
+                                                          )
+                                                          : null)),
+                                          child:
+                                              avatarUrl == null ||
+                                                      avatarUrl!.isEmpty
+                                                  ? Text(
+                                                    nameCtrl.text.isNotEmpty
+                                                        ? nameCtrl.text[0]
+                                                            .toUpperCase()
+                                                        : '?',
+                                                    style: const TextStyle(
+                                                      fontSize: 48,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: Colors.white,
                                                     ),
-                                                validator:
-                                                    (val) =>
-                                                        val == null ||
-                                                                val.isEmpty
-                                                            ? 'Nhập mật khẩu hiện tại'
-                                                            : null,
-                                              ),
-                                              const SizedBox(height: 12),
-                                              TextFormField(
-                                                controller: newPassCtrl,
-                                                obscureText: true,
-                                                decoration:
-                                                    const InputDecoration(
-                                                      labelText:
-                                                          'Mật khẩu mới',
-                                                    ),
-                                                validator:
-                                                    (val) =>
-                                                        val == null ||
-                                                                val.length <
-                                                                    6
-                                                            ? 'Tối thiểu 6 ký tự'
-                                                            : null,
+                                                  )
+                                                  : null,
+                                        ),
+                                      ),
+                                      GestureDetector(
+                                        onTap: pickAvatarImage,
+                                        child: Container(
+                                          width: 40,
+                                          height: 40,
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            shape: BoxShape.circle,
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withOpacity(
+                                                  0.2,
+                                                ),
+                                                blurRadius: 6,
+                                                spreadRadius: 1,
                                               ),
                                             ],
                                           ),
+                                          child: Icon(
+                                            Icons.camera_alt_rounded,
+                                            size: 22,
+                                            color: Colors.blue.shade700,
+                                          ),
                                         ),
-                                        actions: [
-                                          TextButton(
-                                            onPressed:
-                                                () =>
-                                                    Navigator.pop(context),
-                                            child: const Text('Huỷ'),
-                                          ),
-                                          ElevatedButton(
-                                            onPressed: () {
-                                              if (formKey.currentState!
-                                                  .validate()) {
-                                                changePassword(
-                                                  oldPassCtrl.text,
-                                                  newPassCtrl.text,
-                                                );
-                                              }
-                                            },
-                                            child: const Text('Xác nhận'),
-                                          ),
-                                        ],
-                                      );
-                                    },
-                                  );
-                                },
-                                child: const Text('Đổi mật khẩu'),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 16),
+
+                                  // User name in header
+                                  Text(
+                                    nameCtrl.text,
+                                    style: const TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+
+                                  // User role badge
+                                  if (userRole != null)
+                                    Container(
+                                      margin: const EdgeInsets.only(top: 8),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.25),
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(
+                                          color: Colors.white.withOpacity(0.5),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        getRoleName(userRole),
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                ],
                               ),
-                            ],
-                          ),
+                            ),
+
+                            // Form Content
+                            Padding(
+                              padding: const EdgeInsets.all(24),
+                              child: Form(
+                                key: _formKey,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      "Thông tin cá nhân",
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 24),
+
+                                    // Email field (readonly)
+                                    TextFormField(
+                                      controller: emailCtrl,
+                                      readOnly: true,
+                                      decoration: InputDecoration(
+                                        labelText: 'Email',
+                                        labelStyle: TextStyle(
+                                          color: Colors.grey[700],
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                        prefixIcon: Icon(
+                                          Icons.email_rounded,
+                                          color: Colors.blue.shade700,
+                                        ),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          borderSide: BorderSide(
+                                            color: Colors.grey.shade300,
+                                          ),
+                                        ),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          borderSide: BorderSide(
+                                            color: Colors.grey.shade300,
+                                          ),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          borderSide: BorderSide(
+                                            color: Colors.blue.shade700,
+                                            width: 2,
+                                          ),
+                                        ),
+                                        filled: true,
+                                        fillColor: Colors.grey.shade100,
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              vertical: 16,
+                                              horizontal: 16,
+                                            ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 20),
+
+                                    // Full name field
+                                    TextFormField(
+                                      controller: nameCtrl,
+                                      decoration: InputDecoration(
+                                        labelText: 'Họ và tên',
+                                        labelStyle: TextStyle(
+                                          color: Colors.grey[700],
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                        prefixIcon: Icon(
+                                          Icons.person_rounded,
+                                          color: Colors.blue.shade700,
+                                        ),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          borderSide: BorderSide(
+                                            color: Colors.grey.shade300,
+                                          ),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          borderSide: BorderSide(
+                                            color: Colors.blue.shade700,
+                                            width: 2,
+                                          ),
+                                        ),
+                                        filled: true,
+                                        fillColor: Colors.white,
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              vertical: 16,
+                                              horizontal: 16,
+                                            ),
+                                      ),
+                                      validator: (value) {
+                                        if (value == null || value.isEmpty) {
+                                          return 'Vui lòng nhập họ tên';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                    const SizedBox(height: 20),
+
+                                    // Phone field
+                                    TextFormField(
+                                      controller: phoneCtrl,
+                                      keyboardType: TextInputType.phone,
+                                      decoration: InputDecoration(
+                                        labelText: 'Số điện thoại',
+                                        labelStyle: TextStyle(
+                                          color: Colors.grey[700],
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                        prefixIcon: Icon(
+                                          Icons.phone_rounded,
+                                          color: Colors.blue.shade700,
+                                        ),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          borderSide: BorderSide(
+                                            color: Colors.grey.shade300,
+                                          ),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          borderSide: BorderSide(
+                                            color: Colors.blue.shade700,
+                                            width: 2,
+                                          ),
+                                        ),
+                                        filled: true,
+                                        fillColor: Colors.white,
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              vertical: 16,
+                                              horizontal: 16,
+                                            ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 36),
+
+                                    // Action Buttons
+                                    Row(
+                                      children: [
+                                        // Save button
+                                        Expanded(
+                                          child: ElevatedButton(
+                                            onPressed: updateProfile,
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor:
+                                                  Colors.blue.shade700,
+                                              foregroundColor: Colors.white,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    vertical: 16,
+                                                  ),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                              elevation: 2,
+                                            ),
+                                            child: Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                const Icon(Icons.save_rounded),
+                                                const SizedBox(width: 8),
+                                                const Text(
+                                                  'Lưu thay đổi',
+                                                  style: TextStyle(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+
+                                    // Change password option
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 24),
+                                      child: Divider(
+                                        color: Colors.grey.shade300,
+                                      ),
+                                    ),
+
+                                    // Security Section
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 16),
+                                      child: TextButton.icon(
+                                        onPressed: () {
+                                          showDialog(
+                                            context: context,
+                                            builder: (context) {
+                                              final oldPassCtrl =
+                                                  TextEditingController();
+                                              final newPassCtrl =
+                                                  TextEditingController();
+                                              final confirmPassCtrl =
+                                                  TextEditingController();
+                                              final formKey =
+                                                  GlobalKey<FormState>();
+
+                                              return AlertDialog(
+                                                title: Row(
+                                                  children: [
+                                                    Icon(
+                                                      Icons.lock_rounded,
+                                                      color:
+                                                          Colors.blue.shade700,
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    const Text('Đổi mật khẩu'),
+                                                  ],
+                                                ),
+                                                content: Form(
+                                                  key: formKey,
+                                                  child: Column(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      TextFormField(
+                                                        controller: oldPassCtrl,
+                                                        obscureText: true,
+                                                        decoration: InputDecoration(
+                                                          labelText:
+                                                              'Mật khẩu hiện tại',
+                                                          prefixIcon: const Icon(
+                                                            Icons.lock_outline,
+                                                          ),
+                                                          border: OutlineInputBorder(
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  10,
+                                                                ),
+                                                          ),
+                                                        ),
+                                                        validator:
+                                                            (val) =>
+                                                                val == null ||
+                                                                        val.isEmpty
+                                                                    ? 'Nhập mật khẩu hiện tại'
+                                                                    : null,
+                                                      ),
+                                                      const SizedBox(
+                                                        height: 16,
+                                                      ),
+                                                      TextFormField(
+                                                        controller: newPassCtrl,
+                                                        obscureText: true,
+                                                        decoration: InputDecoration(
+                                                          labelText:
+                                                              'Mật khẩu mới',
+                                                          prefixIcon:
+                                                              const Icon(
+                                                                Icons.lock,
+                                                              ),
+                                                          border: OutlineInputBorder(
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  10,
+                                                                ),
+                                                          ),
+                                                        ),
+                                                        validator:
+                                                            (val) =>
+                                                                val == null ||
+                                                                        val.length <
+                                                                            6
+                                                                    ? 'Tối thiểu 6 ký tự'
+                                                                    : null,
+                                                      ),
+                                                      const SizedBox(
+                                                        height: 16,
+                                                      ),
+                                                      TextFormField(
+                                                        controller:
+                                                            confirmPassCtrl,
+                                                        obscureText: true,
+                                                        decoration: InputDecoration(
+                                                          labelText:
+                                                              'Xác nhận mật khẩu mới',
+                                                          prefixIcon:
+                                                              const Icon(
+                                                                Icons.lock,
+                                                              ),
+                                                          border: OutlineInputBorder(
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  10,
+                                                                ),
+                                                          ),
+                                                        ),
+                                                        validator: (val) {
+                                                          if (val == null ||
+                                                              val.isEmpty) {
+                                                            return 'Xác nhận mật khẩu mới';
+                                                          }
+                                                          if (val !=
+                                                              newPassCtrl
+                                                                  .text) {
+                                                            return 'Mật khẩu không khớp';
+                                                          }
+                                                          return null;
+                                                        },
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                                actions: [
+                                                  TextButton(
+                                                    onPressed:
+                                                        () => Navigator.pop(
+                                                          context,
+                                                        ),
+                                                    child: const Text('Huỷ'),
+                                                  ),
+                                                  ElevatedButton(
+                                                    style:
+                                                        ElevatedButton.styleFrom(
+                                                          backgroundColor:
+                                                              Colors
+                                                                  .blue
+                                                                  .shade700,
+                                                          foregroundColor:
+                                                              Colors.white,
+                                                        ),
+                                                    onPressed: () {
+                                                      if (formKey.currentState!
+                                                          .validate()) {
+                                                        changePassword(
+                                                          oldPassCtrl.text,
+                                                          newPassCtrl.text,
+                                                        );
+                                                      }
+                                                    },
+                                                    child: const Text(
+                                                      'Xác nhận',
+                                                    ),
+                                                  ),
+                                                ],
+                                              );
+                                            },
+                                          );
+                                        },
+                                        style: TextButton.styleFrom(
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 12,
+                                            horizontal: 16,
+                                          ),
+                                          backgroundColor: Colors.blue.shade50,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
+                                          ),
+                                        ),
+                                        icon: Icon(
+                                          Icons.lock_outline_rounded,
+                                          color: Colors.blue.shade700,
+                                        ),
+                                        label: Text(
+                                          'Đổi mật khẩu',
+                                          style: TextStyle(
+                                            color: Colors.blue.shade700,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
     );
   }
 }

@@ -181,15 +181,45 @@ class _TaskPageState extends State<TaskPage> {
   }
 
   Color getStatusColor(dynamic status) {
+    if (status is int) {
+      switch (status) {
+        case 0:
+          return Colors.blueGrey.shade300;
+        case 1:
+          return Colors.blue.shade300;
+        case 2:
+          return Colors.green.shade600;
+        default:
+          return Colors.red.shade300;
+      }
+    }
+    else if(status is String) {
+      switch (status.toLowerCase()) {
+        case 'none':
+          return Colors.blueGrey.shade300;
+        case 'inprogress':
+        case 'in_progress':
+          return Colors.blue.shade300;
+        case 'done':
+          return Colors.green.shade600;
+        default:
+          return Colors.red.shade300;
+      }
+    }
+    return Colors.red.shade300;
+  }
+
+
+  Map<String, dynamic> getStatusColorMap(dynamic status) {
     switch (status) {
       case 0:
-        return Colors.grey;
+        return {'color': Colors.grey, 'text': 'Chưa bắt đầu'};
       case 1:
-        return Colors.orange;
+        return {'color': Colors.orange, 'text': 'Đang tiến hành'};
       case 2:
-        return Colors.green;
+        return {'color': Colors.green, 'text': 'Hoàn tích'};
       default:
-        return Colors.black45;
+        return {'color': Colors.black45, 'text': 'Không xác định'};
     }
   }
 
@@ -226,96 +256,383 @@ class _TaskPageState extends State<TaskPage> {
     );
   }
 
-  @override
+@override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    
     return CommonLayout(
       title: 'Quản lý task',
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 12),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: DropdownButtonFormField<int>(
-              isExpanded: true,
-              decoration: const InputDecoration(
-                labelText: 'Chọn Project',
-                border: OutlineInputBorder(),
-              ),
-              value: selectedProjectId,
-              items:
-                  projects.map<DropdownMenuItem<int>>((project) {
+          // Search and filter section
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 5,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            margin: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Bộ lọc',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[700],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                
+                // Project dropdown
+                DropdownButtonFormField<int>(
+                  isExpanded: true,
+                  decoration: InputDecoration(
+                    labelText: 'Chọn Project',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    prefixIcon: const Icon(Icons.folder_outlined),
+                  ),
+                  value: selectedProjectId,
+                  items: projects.map<DropdownMenuItem<int>>((project) {
                     return DropdownMenuItem<int>(
                       value: project['id'],
                       child: Text(project['name'] ?? '---'),
                     );
                   }).toList(),
-              onChanged: (value) {
-                setState(() {
-                  selectedProjectId = value;
-                  selectedModuleId = null;
-                  modules = [];
-                  tasks = [];
-                });
-                if (value != null) fetchModules(value);
-              },
-            ),
-          ),
-          const SizedBox(height: 12),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: DropdownButtonFormField<int>(
-              isExpanded: true,
-              decoration: const InputDecoration(
-                labelText: 'Chọn Module',
-                border: OutlineInputBorder(),
-              ),
-              value: selectedModuleId,
-              items:
-                  modules.map<DropdownMenuItem<int>>((module) {
+                  onChanged: (value) {
+                    setState(() {
+                      selectedProjectId = value;
+                      selectedModuleId = null;
+                      modules = [];
+                      tasks = [];
+                    });
+                    if (value != null) fetchModules(value);
+                  },
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // Module dropdown
+                DropdownButtonFormField<int>(
+                  isExpanded: true,
+                  decoration: InputDecoration(
+                    labelText: 'Chọn Module',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    prefixIcon: const Icon(Icons.view_module_outlined),
+                  ),
+                  value: selectedModuleId,
+                  items: modules.map<DropdownMenuItem<int>>((module) {
                     return DropdownMenuItem<int>(
                       value: module['id'],
                       child: Text(module['name'] ?? '---'),
                     );
                   }).toList(),
-              onChanged: (value) {
-                setState(() {
-                  selectedModuleId = value;
-                });
-                if (value != null) fetchTasks(value);
-              },
+                  onChanged: (value) {
+                    setState(() {
+                      selectedModuleId = value;
+                    });
+                    if (value != null) fetchTasks(value);
+                  },
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 12),
+          
+          // Task list section
           Expanded(
-            child:
-                isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : tasks.isEmpty
-                    ? const Center(child: Text('Không có task nào.'))
-                    : ListView(
-                      children: tasks.map<Widget>(buildTaskCard).toList(),
-                    ),
+            child: isLoading 
+            ? const Center(child: CircularProgressIndicator()) 
+            : tasks.isEmpty 
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.assignment_outlined,
+                        size: 64,
+                        color: Colors.grey[400],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Không có task nào',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      if (selectedModuleId != null)
+                        TextButton.icon(
+                          onPressed: () async {
+                            final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => CreateTaskPage(moduleId: selectedModuleId!),
+                              ),
+                            );
+                            if (result == true) fetchTasks(selectedModuleId!);
+                          },
+                          icon: const Icon(Icons.add),
+                          label: const Text('Tạo task mới'),
+                        ),
+                    ],
+                  ),
+                )
+              : isMobile
+                ? _buildMobileTaskList()
+                : _buildDesktopTaskList(),
           ),
         ],
       ),
       floatingActionButton:
           (selectedModuleId != null)
               ? FloatingActionButton(
-                onPressed: () async {
-                  final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder:
-                          (_) => CreateTaskPage(moduleId: selectedModuleId!),
-                    ),
-                  );
-                  if (result == true) fetchTasks(selectedModuleId!);
-                },
-                child: const Icon(Icons.add),
-                tooltip: 'Tạo task mới',
-                backgroundColor: Colors.blue.shade700,
-              )
+                  onPressed: () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => CreateTaskPage(moduleId: selectedModuleId!),
+                      ),
+                    );
+                    if (result == true) fetchTasks(selectedModuleId!);
+                  },
+                  child: const Icon(Icons.add),
+                  tooltip: 'Tạo task mới',
+                  backgroundColor: Colors.blue,
+                )
               : null,
+    );
+  }
+
+  Widget _buildMobileTaskList() {
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      itemCount: tasks.length,
+      itemBuilder: (context, index) {
+        final task = tasks[index];
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 5,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: ListTile(
+            contentPadding: const EdgeInsets.all(16),
+            title: Text(
+              task['title'] ?? 'Không có tiêu đề',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16, 
+              ),
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(Icons.person_outline, size: 16, color: Colors.grey),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        task['assignedUserName'] ?? 'Không rõ',
+                        style: TextStyle(color: Colors.grey[700]),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: getStatusColor(task['status']),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Text(
+                    _getStatusText(task['status']),
+                    style: const TextStyle(color: Colors.white, fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => TaskDetailPage(taskId: task['id']),
+                ),
+              );
+            },
+            trailing: const Icon(Icons.chevron_right),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDesktopTaskList() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 5,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Table header
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.indigo[600],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: Text(
+                    'Tiêu đề',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    'Người đảm nhiệm',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 1,
+                  child: Text(
+                    'Trạng thái',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                SizedBox(width: 50),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          
+          // Table body
+          Expanded(
+            child: ListView.builder(
+              itemCount: tasks.length,
+              itemBuilder: (context, index) {
+                final task = tasks[index];
+                return InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => TaskDetailPage(taskId: task['id']),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(
+                          color: Colors.grey[200]!,
+                          width: 1,
+                        ),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: Text(
+                            task['title'] ?? 'Không có tiêu đề',
+                            style: const TextStyle(fontWeight: FontWeight.w500),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text(task['assignedUserName'] ?? 'Không rõ'),
+                        ),
+                        Expanded(
+                          flex: 1,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: getStatusColor(task['status']),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Text(
+                              _getStatusText(task['status']),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          width: 50,
+                          child: IconButton(
+                            icon: Icon(Icons.arrow_forward_ios, size: 16),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => TaskDetailPage(taskId: task['id']),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

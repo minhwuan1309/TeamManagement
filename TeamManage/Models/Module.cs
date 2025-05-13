@@ -11,6 +11,8 @@ namespace TeamManage.Models
         public bool IsDeleted { get; set; } = false;
 
         public ICollection<ModuleMember> ModuleMembers { get; set; }
+        public int? WorkflowId { get; set; }
+        public Workflow Workflow { get; set; }
 
         public Project Project { get; set; }
         public ICollection<TaskItem> Tasks { get; set; }

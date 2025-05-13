@@ -122,7 +122,7 @@ class CommonLayout extends StatelessWidget {
               'Trang chủ',
               style: TextStyle(fontWeight: FontWeight.w500),
             ),
-            onTap: () => _navigate(context, '/'),
+            onTap: () => _navigate(context, '/home'),
             tileColor:
                 title == 'Trang chủ' ? Colors.blue.withOpacity(0.1) : null,
             shape: const RoundedRectangleBorder(
@@ -221,16 +221,20 @@ class CommonLayout extends StatelessWidget {
                 elevation: 1,
                 backgroundColor: Colors.grey.shade100,
                 actions: appBarActions,
-                leading:
-                    showAppBar &&
-                            Navigator.canPop(context) &&
-                            title != 'Trang chủ'
-                        ? IconButton(
+                leading: showAppBar
+                  ? Navigator.canPop(context) && title != 'Trang chủ'
+                      ? IconButton(
                           icon: const Icon(Icons.arrow_back),
                           onPressed: () => Navigator.of(context).pop(),
                         )
-                        : null,
-              )
+                      : Builder(
+                          builder: (context) => IconButton(
+                            icon: const Icon(Icons.menu),
+                            onPressed: () => Scaffold.of(context).openDrawer(),
+                          ),
+                        )
+                  : null,
+                  )
               : null,
       drawer:
           isMobile

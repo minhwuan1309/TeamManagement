@@ -1,11 +1,14 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:team_manage_frontend/api_service.dart';
 import 'package:team_manage_frontend/layouts/common_layout.dart';
 import 'package:team_manage_frontend/screens/modules/edit_module_page.dart';
+import 'package:team_manage_frontend/screens/tasks/create_task_page.dart';
 import 'package:team_manage_frontend/screens/tasks/task_detail_page.dart';
+import 'package:team_manage_frontend/screens/workflow/workflow_widget.dart';
 
 class ModuleDetailPage extends StatefulWidget {
   final Map? module;
@@ -25,6 +28,7 @@ class _ModuleDetailPageState extends State<ModuleDetailPage> {
   bool isUpdating = false;
   Map? currentModule;
   bool isLoading = true;
+  Map? currentWorkflow;
 
   @override
   void initState() {
@@ -34,6 +38,7 @@ class _ModuleDetailPageState extends State<ModuleDetailPage> {
       isLoading = false;
     } else if (widget.moduleId != null) {
       fetchModule(widget.moduleId!);
+      fetchWorkflow(widget.moduleId!);
     }
   }
 
@@ -43,7 +48,7 @@ class _ModuleDetailPageState extends State<ModuleDetailPage> {
     final token = prefs.getString('token');
 
     final res = await http.get(
-      Uri.parse('http://localhost:5053/api/module/$moduleId'),
+      Uri.parse('$baseUrl/module/$moduleId'),
       headers: {'Authorization': 'Bearer $token'},
     );
 
@@ -59,6 +64,65 @@ class _ModuleDetailPageState extends State<ModuleDetailPage> {
           context,
         ).showSnackBar(SnackBar(content: Text("Lỗi: ${res.body}")));
       }
+    }
+  }
+
+  // Hàm debug để kiểm tra dữ liệu workflow trong fetchWorkflow
+  Future<void> fetchWorkflow(int moduleId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      final res = await http.get(
+        Uri.parse('$baseUrl/workflow/module/$moduleId'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      print('Workflow API Response Code: ${res.statusCode}');
+
+      if (res.statusCode == 200) {
+        final workflowData = jsonDecode(res.body);
+
+        // Debug: In ra cấu trúc dữ liệu chi tiết
+        print('Workflow Data Structure:');
+        print('- Has steps: ${workflowData.containsKey('steps')}');
+
+        if (workflowData.containsKey('steps')) {
+          if (workflowData['steps'] is Map) {
+            print('- Steps is Map: true');
+            print(
+              '- Has \$values: ${workflowData['steps'].containsKey(r'$values')}',
+            );
+            if (workflowData['steps'].containsKey(r'$values')) {
+              final stepsList = workflowData['steps'][r'$values'];
+              print('- Number of steps: ${stepsList.length}');
+              if (stepsList.isNotEmpty) {
+                print('- First step sample: ${stepsList.first}');
+              }
+            }
+          } else if (workflowData['steps'] is List) {
+            print('- Steps is List: true');
+            print('- Number of steps: ${workflowData['steps'].length}');
+          } else {
+            print(
+              '- Steps is neither Map nor List: ${workflowData['steps'].runtimeType}',
+            );
+          }
+        }
+
+        setState(() {
+          currentWorkflow = workflowData;
+        });
+      } else {
+        print('Failed to load workflow: ${res.body}');
+        setState(() {
+          currentWorkflow = null;
+        });
+      }
+    } catch (e) {
+      print('Exception when loading workflow: $e');
+      setState(() {
+        currentWorkflow = null;
+      });
     }
   }
 
@@ -276,19 +340,18 @@ class _ModuleDetailPageState extends State<ModuleDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading)
+    if (isLoading) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator(color: Colors.blue)),
       );
-    if (currentModule == null)
+    }
+    if (currentModule == null) {
       return const Scaffold(
         body: Center(
-          child: Text(
-            "Không tìm thấy module",
-            style: TextStyle(fontSize: 16),
-          ),
+          child: Text("Không tìm thấy module", style: TextStyle(fontSize: 16)),
         ),
       );
+    }
 
     List<dynamic> members = [];
     if (currentModule?['members'] != null) {
@@ -342,15 +405,9 @@ class _ModuleDetailPageState extends State<ModuleDetailPage> {
       title: 'Chi tiết Module',
       appBarActions: [
         IconButton(
-          icon: const Icon(Icons.refresh, color: Colors.white),
-          tooltip: 'Làm mới dữ liệu',
-          onPressed: _refreshModuleData,
-        ),
-        IconButton(
-          icon: const Icon(Icons.edit, color: Colors.white),
+          icon: const Icon(Icons.edit, color: Colors.orange),
           tooltip: 'Chỉnh sửa Module',
           onPressed: () {
-            // Fix here: Safely extract member IDs regardless of the data structure
             final moduleWithMembers = {
               ...currentModule!,
               'memberIds': {
@@ -369,10 +426,7 @@ class _ModuleDetailPageState extends State<ModuleDetailPage> {
                   setState(() {
                     currentModule = result;
                   });
-                  Navigator.pop(
-                    context,
-                    true,
-                  ); // ✅ Thêm dòng này để báo về module_page
+                  Navigator.pop(context, true);
                 } else if (result == true) {
                   _refreshModuleData();
                 }
@@ -383,7 +437,8 @@ class _ModuleDetailPageState extends State<ModuleDetailPage> {
         IconButton(
           icon: Icon(
             currentModule?['isDeleted'] == true ? Icons.restore : Icons.delete,
-            color: Colors.white,
+            color:
+                currentModule?['isDeleted'] == true ? Colors.green : Colors.red,
           ),
           tooltip:
               currentModule?['isDeleted'] == true
@@ -398,7 +453,16 @@ class _ModuleDetailPageState extends State<ModuleDetailPage> {
               context: context,
               builder:
                   (context) => AlertDialog(
-                    title: Text('Xác nhận', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    title: Text(
+                      'Xác nhận',
+                      style: TextStyle(
+                        color: Colors.blue,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     content: Text(confirmText),
                     actions: [
                       TextButton(
@@ -424,437 +488,823 @@ class _ModuleDetailPageState extends State<ModuleDetailPage> {
         ),
         if (currentModule?['isDeleted'] == true)
           IconButton(
-            icon: const Icon(Icons.delete_forever, color: Colors.white),
+            icon: const Icon(Icons.delete_forever, color: Colors.red),
             tooltip: 'Xoá vĩnh viễn Module',
             onPressed: () {
-              final confirmHardDeleteText = 'Bạn có chắc muốn xoá vĩnh viễn module này?';
+              final confirmHardDeleteText =
+                  'Bạn có chắc muốn xoá vĩnh viễn module này?';
               showDialog(
                 context: context,
                 builder:
                     (context) => AlertDialog(
-                  title: Text('Xác nhận', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
-                  content: Text(confirmHardDeleteText),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Hủy'),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _hardDeleteModule();
-                      },
-                      child: const Text(
-                        'Xoá vĩnh viễn',
-                        style: TextStyle(color: Colors.red),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
                       ),
+                      title: Text(
+                        'Xác nhận',
+                        style: TextStyle(
+                          color: Colors.blue,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      content: Text(confirmHardDeleteText),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Hủy'),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _hardDeleteModule();
+                          },
+                          child: const Text(
+                            'Xoá vĩnh viễn',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
               );
             },
           ),
       ],
-
-      child: isUpdating
-          ? const Center(child: CircularProgressIndicator(color: Colors.blue))
-          : Scaffold(
-              backgroundColor: Colors.grey[50],
-              body: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Header với thông tin cơ bản
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16.0),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.withOpacity(0.2),
-                            spreadRadius: 1,
-                            blurRadius: 3,
-                            offset: Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            currentModule?['name'] ?? 'Không có tên',
-                            style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
+      floatingActionButton: SpeedDial(
+        icon: Icons.keyboard_arrow_up, // mũi tên ^
+        activeIcon: Icons.close,
+        backgroundColor: Colors.blue,
+        children: [
+          SpeedDialChild(
+            child: Icon(Icons.add_task),
+            label: 'Thêm task',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder:
+                      (context) =>
+                          CreateTaskPage(moduleId: currentModule!['id']),
+                ),
+              ).then((shouldReload) {
+                if (shouldReload == true) _refreshModuleData();
+              });
+            },
+          ),
+          SpeedDialChild(
+            child: Icon(Icons.account_tree),
+            label: 'Thêm workflow',
+            onTap: () {
+              // TODO: Thêm trang tạo workflow
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text("Chức năng Thêm Workflow chưa được triển khai"),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+      child:
+          isUpdating
+              ? const Center(
+                child: CircularProgressIndicator(color: Colors.blue),
+              )
+              : RefreshIndicator(
+                onRefresh: _refreshModuleData,
+                color: Colors.blue,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 12.0,
+                    horizontal: 12.0,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header với thông tin cơ bản
+                      Card(
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'Trạng thái: ',
-                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                decoration: BoxDecoration(
-                                  color: _getStatusColor(currentModule?['status']).withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(15),
-                                  border: Border.all(color: _getStatusColor(currentModule?['status'])),
-                                ),
-                                child: DropdownButton<int>(
-                                  value: currentModule?['status'] is int
-                                      ? currentModule!['status']
-                                      : _getStatusValue(
-                                    _getStatusText(currentModule?['status']),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.dashboard_rounded,
+                                    color: Colors.blue,
+                                    size: 24,
                                   ),
-                                  items: [
-                                    DropdownMenuItem(
-                                      value: 0,
-                                      child: Text('Chưa bắt đầu', style: TextStyle(color: Colors.grey[700])),
-                                    ),
-                                    DropdownMenuItem(
-                                      value: 1,
-                                      child: Text('Đang tiến hành', style: TextStyle(color: Colors.blue[700])),
-                                    ),
-                                    DropdownMenuItem(
-                                      value: 2,
-                                      child: Text('Hoàn thành', style: TextStyle(color: Colors.green[700])),
-                                    ),
-                                  ],
-                                  onChanged: (value) {
-                                    if (value != null) {
-                                      _updateModuleStatus(value);
-                                    }
-                                  },
-                                  underline: Container(height: 0),
-                                  icon: Icon(Icons.arrow_drop_down, color: _getStatusColor(currentModule?['status'])),
-                                  dropdownColor: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
-                                    SizedBox(width: 4),
-                                    Text(
-                                      'Tạo: $createdAt',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.grey[600],
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      currentModule?['name'] ?? 'Không có tên',
+                                      style: const TextStyle(
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.blue,
                                       ),
                                     ),
-                                  ],
-                                ),
-                              ),
-                              Expanded(
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.update, size: 16, color: Colors.grey[600]),
-                                    SizedBox(width: 4),
-                                    Text(
-                                      'Cập nhật: $updatedAt',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    
-                    SizedBox(height: 16),
-
-                    // Phần Thành viên
-                    Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.withOpacity(0.2),
-                            spreadRadius: 1,
-                            blurRadius: 3,
-                            offset: Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(Icons.people, color: Colors.blue),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Danh sách thành viên',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.blue,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          
-                          members.isEmpty
-                              ? Container(
-                                  padding: EdgeInsets.symmetric(vertical: 16),
-                                  alignment: Alignment.center,
-                                  child: Text(
-                                    'Không có thành viên nào.',
-                                    style: TextStyle(color: Colors.grey[600]),
                                   ),
-                                )
-                              : Container(
-                                  constraints: BoxConstraints(maxHeight: 160),
-                                  child: ListView.builder(
-                                    shrinkWrap: true,
-                                    itemCount: members.length,
-                                    itemBuilder: (context, index) {
-                                      final member = members[index];
-                                      final String fullName = member['fullName'] ?? 'Không tên';
-                                      final String? avatarUrl = member['avatar'];
-                                      final String role = member['roleInProject'] ?? 'Không có vai trò';
-
-                                      return Card(
-                                        elevation: 0,
-                                        margin: EdgeInsets.only(bottom: 8),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(8),
-                                          side: BorderSide(color: Colors.grey.shade200),
+                                ],
+                              ),
+                              const Divider(height: 24, thickness: 1),
+                              Row(
+                                children: [
+                                  const Text(
+                                    'Trạng thái: ',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 5,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: _getStatusColor(
+                                        currentModule?['status'],
+                                      ).withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(15),
+                                      border: Border.all(
+                                        color: _getStatusColor(
+                                          currentModule?['status'],
                                         ),
-                                        child: ListTile(
-                                          leading: avatarUrl != null && avatarUrl.isNotEmpty
-                                              ? CircleAvatar(
-                                                  backgroundImage: NetworkImage(avatarUrl),
-                                                  onBackgroundImageError: (_, __) {},
-                                                )
-                                              : CircleAvatar(
-                                                  backgroundColor: Colors.blue,
-                                                  child: Icon(
-                                                    Icons.person,
-                                                    color: Colors.white,
-                                                  ),
+                                      ),
+                                    ),
+                                    child: DropdownButton<int>(
+                                      value:
+                                          currentModule?['status'] is int
+                                              ? currentModule!['status']
+                                              : _getStatusValue(
+                                                _getStatusText(
+                                                  currentModule?['status'],
                                                 ),
-                                          title: Text(
-                                            fullName,
-                                            style: TextStyle(fontWeight: FontWeight.w500),
-                                          ),
-                                          subtitle: Text(
-                                            'Vai trò: $role',
-                                            style: TextStyle(color: Colors.grey[600]),
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                        ],
-                      ),
-                    ),
-
-                    SizedBox(height: 16),
-
-                    // Phần Công việc
-                    Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.withOpacity(0.2),
-                            spreadRadius: 1,
-                            blurRadius: 3,
-                            offset: Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(Icons.task_alt, color: Colors.blue),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Danh sách công việc',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.blue,
-                                ),
-                              ),
-                              const Spacer(),
-                              IconButton(
-                                icon: Icon(Icons.add_circle_outline, color: Colors.blue),
-                                tooltip: 'Thêm công việc mới',
-                                onPressed: () {
-                                  // Chức năng thêm công việc mới
-                                },
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          
-                          tasks.isEmpty
-                              ? Container(
-                                  padding: EdgeInsets.symmetric(vertical: 24),
-                                  alignment: Alignment.center,
-                                  child: Column(
-                                    children: [
-                                      Icon(Icons.assignment_outlined, size: 48, color: Colors.grey[400]),
-                                      SizedBox(height: 16),
-                                      Text(
-                                        'Không có công việc nào.',
-                                        style: TextStyle(color: Colors.grey[600]),
-                                      ),
-                                    ],
-                                  ),
-                                )
-                              : Container(
-                                  constraints: BoxConstraints(maxHeight: 400),
-                                  child: ListView.builder(
-                                    shrinkWrap: true,
-                                    itemCount: tasks.length,
-                                    itemBuilder: (context, index) {
-                                      final task = tasks[index];
-                                      final String title = task['title'] ?? 'Không có tiêu đề';
-                                      final dynamic status = task['status'];
-                                      final String startDate = _formatDate(task['startDate']);
-                                      final String endDate = _formatDate(task['endDate']);
-                                      final String assignedUserName = task['assignedUserName'] ?? 'Chưa gán';
-
-                                      return Card(
-                                        margin: const EdgeInsets.only(bottom: 12),
-                                        elevation: 1,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
-                                        child: InkWell(
-                                          borderRadius: BorderRadius.circular(8),
-                                          onTap: () {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (_) => TaskDetailPage(taskId: task['id']),
                                               ),
-                                            );
-                                          },
-                                          child: Padding(
-                                            padding: const EdgeInsets.all(12.0),
-                                            child: Row(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                      items: [
+                                        DropdownMenuItem(
+                                          value: 0,
+                                          child: Text(
+                                            'Chưa bắt đầu',
+                                            style: TextStyle(
+                                              color: Colors.grey[700],
+                                            ),
+                                          ),
+                                        ),
+                                        DropdownMenuItem(
+                                          value: 1,
+                                          child: Text(
+                                            'Đang tiến hành',
+                                            style: TextStyle(
+                                              color: Colors.blue[700],
+                                            ),
+                                          ),
+                                        ),
+                                        DropdownMenuItem(
+                                          value: 2,
+                                          child: Text(
+                                            'Hoàn thành',
+                                            style: TextStyle(
+                                              color: Colors.green[700],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                      onChanged: (value) {
+                                        if (value != null) {
+                                          _updateModuleStatus(value);
+                                        }
+                                      },
+                                      underline: Container(height: 0),
+                                      icon: Icon(
+                                        Icons.arrow_drop_down,
+                                        color: _getStatusColor(
+                                          currentModule?['status'],
+                                        ),
+                                      ),
+                                      dropdownColor: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Container(
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: 8,
+                                        horizontal: 12,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[100],
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.access_time,
+                                            size: 18,
+                                            color: Colors.blue[600],
+                                          ),
+                                          SizedBox(width: 8),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
                                               children: [
-                                                Container(
-                                                  width: 40,
-                                                  height: 40,
-                                                  decoration: BoxDecoration(
-                                                    color: _getStatusColor(status).withOpacity(0.1),
-                                                    borderRadius: BorderRadius.circular(8),
-                                                  ),
-                                                  child: Center(
-                                                    child: Icon(
-                                                      status == 2 ? Icons.check_circle : Icons.hourglass_empty,
-                                                      color: _getStatusColor(status),
-                                                      size: 24,
-                                                    ),
+                                                Text(
+                                                  'Ngày tạo',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    color: Colors.grey[700],
                                                   ),
                                                 ),
-                                                SizedBox(width: 12),
-                                                Expanded(
-                                                  child: Column(
-                                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                                    children: [
-                                                      Text(
-                                                        title,
-                                                        style: TextStyle(
-                                                          fontWeight: FontWeight.bold,
-                                                          fontSize: 16,
-                                                        ),
-                                                      ),
-                                                      SizedBox(height: 8),
-                                                      Row(
-                                                        children: [
-                                                          Container(
-                                                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                                            decoration: BoxDecoration(
-                                                              color: _getStatusColor(status).withOpacity(0.1),
-                                                              borderRadius: BorderRadius.circular(12),
-                                                            ),
-                                                            child: Text(
-                                                              _getStatusText(status),
-                                                              style: TextStyle(
-                                                                color: _getStatusColor(status),
-                                                                fontSize: 12,
-                                                                fontWeight: FontWeight.w500,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                          SizedBox(width: 8),
-                                                          Icon(Icons.calendar_today, size: 12, color: Colors.grey[600]),
-                                                          SizedBox(width: 4),
-                                                          Text(
-                                                            '$startDate - $endDate',
-                                                            style: TextStyle(
-                                                              fontSize: 12,
-                                                              color: Colors.grey[600],
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                      SizedBox(height: 4),
-                                                      Row(
-                                                        children: [
-                                                          Icon(Icons.person_outline, size: 12, color: Colors.grey[600]),
-                                                          SizedBox(width: 4),
-                                                          Text(
-                                                            assignedUserName,
-                                                            style: TextStyle(
-                                                              fontSize: 12,
-                                                              color: Colors.grey[600],
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ],
+                                                Text(
+                                                  createdAt,
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.w500,
                                                   ),
-                                                ),
-                                                Icon(
-                                                  Icons.chevron_right,
-                                                  color: Colors.grey[400],
                                                 ),
                                               ],
                                             ),
                                           ),
-                                        ),
-                                      );
-                                    },
+                                        ],
+                                      ),
+                                    ),
                                   ),
-                                ),
-                        ],
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Container(
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: 8,
+                                        horizontal: 12,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[100],
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.update,
+                                            size: 18,
+                                            color: Colors.orange[600],
+                                          ),
+                                          SizedBox(width: 8),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  'Cập nhật',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    color: Colors.grey[700],
+                                                  ),
+                                                ),
+                                                Text(
+                                                  updatedAt,
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
+
+                      const SizedBox(height: 16),
+
+                      // Phần Thành viên
+                      Card(
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.people, color: Colors.blue),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    'Danh sách thành viên',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.blue,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const Divider(height: 24, thickness: 1),
+
+                              members.isEmpty
+                                  ? Container(
+                                    padding: EdgeInsets.symmetric(vertical: 24),
+                                    alignment: Alignment.center,
+                                    child: Column(
+                                      children: [
+                                        Icon(
+                                          Icons.group_off,
+                                          size: 48,
+                                          color: Colors.grey[300],
+                                        ),
+                                        SizedBox(height: 12),
+                                        Text(
+                                          'Không có thành viên nào.',
+                                          style: TextStyle(
+                                            color: Colors.grey[600],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                  : Container(
+                                    constraints: BoxConstraints(maxHeight: 200),
+                                    child: ListView.separated(
+                                      shrinkWrap: true,
+                                      physics: AlwaysScrollableScrollPhysics(),
+                                      itemCount: members.length,
+                                      separatorBuilder:
+                                          (context, index) =>
+                                              Divider(height: 1),
+                                      itemBuilder: (context, index) {
+                                        final member = members[index];
+                                        final String fullName =
+                                            member['fullName'] ?? 'Không tên';
+                                        final String? avatarUrl =
+                                            member['avatar'];
+                                        final String role =
+                                            member['roleInProject'] ??
+                                            'Không có vai trò';
+
+                                        return ListTile(
+                                          contentPadding: EdgeInsets.symmetric(
+                                            vertical: 4,
+                                            horizontal: 8,
+                                          ),
+                                          leading: Container(
+                                            width: 45,
+                                            height: 45,
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              color: Colors.blue.withOpacity(
+                                                0.1,
+                                              ),
+                                              border: Border.all(
+                                                color: Colors.blue.withOpacity(
+                                                  0.3,
+                                                ),
+                                              ),
+                                            ),
+                                            child: ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(50),
+                                              child:
+                                                  avatarUrl != null &&
+                                                          avatarUrl.isNotEmpty
+                                                      ? Image.network(
+                                                        avatarUrl,
+                                                        fit: BoxFit.cover,
+                                                        errorBuilder:
+                                                            (
+                                                              context,
+                                                              error,
+                                                              stackTrace,
+                                                            ) => Icon(
+                                                              Icons.person,
+                                                              color:
+                                                                  Colors.blue,
+                                                              size: 28,
+                                                            ),
+                                                      )
+                                                      : Icon(
+                                                        Icons.person,
+                                                        color: Colors.blue,
+                                                        size: 28,
+                                                      ),
+                                            ),
+                                          ),
+                                          title: Text(
+                                            fullName,
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                          subtitle: Row(
+                                            children: [
+                                              Container(
+                                                padding: EdgeInsets.symmetric(
+                                                  horizontal: 8,
+                                                  vertical: 3,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.blue
+                                                      .withOpacity(0.1),
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                ),
+                                                child: Text(
+                                                  role,
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    color: Colors.blue[700],
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      //Workflow
+                      const SizedBox(height: 10),
+                      WorkflowWidget(moduleId: currentModule!['id']),
+
+                      const SizedBox(height: 16),
+                      // Phần Công việc
+                      Card(
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.task_alt,
+                                    color: Colors.blue,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    'Danh sách công việc',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.blue,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const Divider(height: 24, thickness: 1),
+
+                              tasks.isEmpty
+                                  ? Container(
+                                    padding: EdgeInsets.symmetric(vertical: 24),
+                                    alignment: Alignment.center,
+                                    child: Column(
+                                      children: [
+                                        Icon(
+                                          Icons.assignment_outlined,
+                                          size: 48,
+                                          color: Colors.grey[300],
+                                        ),
+                                        SizedBox(height: 16),
+                                        Text(
+                                          'Không có công việc nào.',
+                                          style: TextStyle(
+                                            color: Colors.grey[600],
+                                          ),
+                                        ),
+                                        SizedBox(height: 8),
+                                        ElevatedButton.icon(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.blue,
+                                            foregroundColor: Colors.white,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                          ),
+                                          icon: Icon(Icons.add),
+                                          label: Text('Thêm công việc mới'),
+                                          onPressed: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder:
+                                                    (context) => CreateTaskPage(
+                                                      moduleId:
+                                                          currentModule!['id'],
+                                                    ),
+                                              ),
+                                            ).then((shouldReload) {
+                                              if (shouldReload == true)
+                                                _refreshModuleData();
+                                            });
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                  : Container(
+                                    constraints: BoxConstraints(maxHeight: 500),
+                                    child: ListView.builder(
+                                      shrinkWrap: true,
+                                      physics: AlwaysScrollableScrollPhysics(),
+                                      itemCount: tasks.length,
+                                      itemBuilder: (context, index) {
+                                        final task = tasks[index];
+                                        final String title =
+                                            task['title'] ?? 'Không có tiêu đề';
+                                        final dynamic status = task['status'];
+                                        final String startDate = _formatDate(
+                                          task['startDate'],
+                                        );
+                                        final String endDate = _formatDate(
+                                          task['endDate'],
+                                        );
+                                        final String assignedUserName =
+                                            task['assignedUserName'] ??
+                                            'Chưa gán';
+
+                                        return Card(
+                                          margin: const EdgeInsets.only(
+                                            bottom: 10,
+                                          ),
+                                          elevation: 0,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
+                                            side: BorderSide(
+                                              color: Colors.grey.shade200,
+                                            ),
+                                          ),
+                                          child: InkWell(
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
+                                            onTap: () {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder:
+                                                      (_) => TaskDetailPage(
+                                                        taskId: task['id'],
+                                                      ),
+                                                ),
+                                              ).then(
+                                                (result) => {
+                                                  if (result == true)
+                                                    _refreshModuleData(),
+                                                },
+                                              );
+                                            },
+                                            child: Padding(
+                                              padding: const EdgeInsets.all(
+                                                12.0,
+                                              ),
+                                              child: Row(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Container(
+                                                    width: 40,
+                                                    height: 40,
+                                                    decoration: BoxDecoration(
+                                                      color: _getStatusColor(
+                                                        status,
+                                                      ).withOpacity(0.1),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            8,
+                                                          ),
+                                                    ),
+                                                    child: Center(
+                                                      child: Icon(
+                                                        status == 2
+                                                            ? Icons.check_circle
+                                                            : status == 1
+                                                            ? Icons.pending
+                                                            : Icons
+                                                                .circle_outlined,
+                                                        color: _getStatusColor(
+                                                          status,
+                                                        ),
+                                                        size: 24,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  SizedBox(width: 12),
+                                                  Expanded(
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        Text(
+                                                          title,
+                                                          style: TextStyle(
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            fontSize: 16,
+                                                          ),
+                                                        ),
+                                                        SizedBox(height: 8),
+                                                        Wrap(
+                                                          spacing: 8,
+                                                          runSpacing: 8,
+                                                          children: [
+                                                            Container(
+                                                              padding:
+                                                                  EdgeInsets.symmetric(
+                                                                    horizontal:
+                                                                        8,
+                                                                    vertical: 3,
+                                                                  ),
+                                                              decoration: BoxDecoration(
+                                                                color:
+                                                                    _getStatusColor(
+                                                                      status,
+                                                                    ).withOpacity(
+                                                                      0.1,
+                                                                    ),
+                                                                borderRadius:
+                                                                    BorderRadius.circular(
+                                                                      12,
+                                                                    ),
+                                                                border: Border.all(
+                                                                  color: _getStatusColor(
+                                                                    status,
+                                                                  ).withOpacity(
+                                                                    0.5,
+                                                                  ),
+                                                                  width: 1,
+                                                                ),
+                                                              ),
+                                                              child: Text(
+                                                                _getStatusText(
+                                                                  status,
+                                                                ),
+                                                                style: TextStyle(
+                                                                  color:
+                                                                      _getStatusColor(
+                                                                        status,
+                                                                      ),
+                                                                  fontSize: 12,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w500,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                            Container(
+                                                              padding:
+                                                                  EdgeInsets.symmetric(
+                                                                    horizontal:
+                                                                        8,
+                                                                    vertical: 3,
+                                                                  ),
+                                                              decoration: BoxDecoration(
+                                                                color:
+                                                                    Colors
+                                                                        .grey[100],
+                                                                borderRadius:
+                                                                    BorderRadius.circular(
+                                                                      12,
+                                                                    ),
+                                                              ),
+                                                              child: Row(
+                                                                mainAxisSize:
+                                                                    MainAxisSize
+                                                                        .min,
+                                                                children: [
+                                                                  Icon(
+                                                                    Icons
+                                                                        .calendar_today,
+                                                                    size: 12,
+                                                                    color:
+                                                                        Colors
+                                                                            .grey[600],
+                                                                  ),
+                                                                  SizedBox(
+                                                                    width: 4,
+                                                                  ),
+                                                                  Text(
+                                                                    '$startDate - $endDate',
+                                                                    style: TextStyle(
+                                                                      fontSize:
+                                                                          12,
+                                                                      color:
+                                                                          Colors
+                                                                              .grey[600],
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            ),
+                                                            Container(
+                                                              padding:
+                                                                  EdgeInsets.symmetric(
+                                                                    horizontal:
+                                                                        8,
+                                                                    vertical: 3,
+                                                                  ),
+                                                              decoration: BoxDecoration(
+                                                                color:
+                                                                    Colors
+                                                                        .blue[50],
+                                                                borderRadius:
+                                                                    BorderRadius.circular(
+                                                                      12,
+                                                                    ),
+                                                              ),
+                                                              child: Row(
+                                                                mainAxisSize:
+                                                                    MainAxisSize
+                                                                        .min,
+                                                                children: [
+                                                                  Icon(
+                                                                    Icons
+                                                                        .person_outline,
+                                                                    size: 12,
+                                                                    color:
+                                                                        Colors
+                                                                            .blue[600],
+                                                                  ),
+                                                                  SizedBox(
+                                                                    width: 4,
+                                                                  ),
+                                                                  Text(
+                                                                    assignedUserName,
+                                                                    style: TextStyle(
+                                                                      fontSize:
+                                                                          12,
+                                                                      color:
+                                                                          Colors
+                                                                              .blue[600],
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                  Container(
+                                                    width: 32,
+                                                    height: 32,
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.grey[100],
+                                                      shape: BoxShape.circle,
+                                                    ),
+                                                    child: Icon(
+                                                      Icons.chevron_right,
+                                                      color: Colors.grey[600],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
     );
   }
 }

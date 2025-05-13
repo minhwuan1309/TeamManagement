@@ -32,7 +32,8 @@ class _LoginScreenState extends State<LoginScreen> {
       });
 
       if (token != null) {
-        Navigator.pushReplacementNamed(context, '/');
+        Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+
       }
     } catch (e) {
       setState(() {

@@ -9,7 +9,5 @@ namespace TeamManage.Models
         public string ApproverId { get; set; } // Người duyệt
         public WorkflowStep WorkflowStep { get; set; }
         public ApplicationUser Approver { get; set; }
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
-        public DateTime UpdatedAt { get; set; } = DateTime.Now;
     }
 }
