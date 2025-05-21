@@ -19,9 +19,12 @@ class _TaskPageState extends State<TaskPage> {
   List projects = [];
   List modules = [];
   List tasks = [];
+  List filteredTasks = [];
 
   int? selectedProjectId;
   int? selectedModuleId;
+  
+  String searchQuery = '';
 
   bool isLoading = false;
 
@@ -76,6 +79,7 @@ class _TaskPageState extends State<TaskPage> {
       modules = [];
       selectedModuleId = null;
       tasks = [];
+      filteredTasks = [];
     });
 
     final prefs = await SharedPreferences.getInstance();
@@ -116,6 +120,7 @@ class _TaskPageState extends State<TaskPage> {
     setState(() {
       isLoading = true;
       tasks = [];
+      filteredTasks = [];
     });
 
     final prefs = await SharedPreferences.getInstance();
@@ -136,6 +141,7 @@ class _TaskPageState extends State<TaskPage> {
 
         setState(() {
           tasks = taskList;
+          filteredTasks = taskList;
           isLoading = false;
         });
       } else {
@@ -150,6 +156,24 @@ class _TaskPageState extends State<TaskPage> {
         context,
       ).showSnackBar(SnackBar(content: Text('Lỗi kết nối: $e')));
     }
+  }
+
+  void filterTasks() {
+    if (searchQuery.isEmpty) {
+      setState(() {
+        filteredTasks = List.from(tasks);
+      });
+      return;
+    }
+    
+    final query = searchQuery.toLowerCase();
+    setState(() {
+      filteredTasks = tasks.where((task) {
+        final title = (task['title'] ?? '').toString().toLowerCase();
+        final assignedUser = (task['assignedUserName'] ?? '').toString().toLowerCase();
+        return title.contains(query) || assignedUser.contains(query);
+      }).toList();
+    });
   }
 
   String _getStatusText(dynamic status) {
@@ -262,7 +286,24 @@ class _TaskPageState extends State<TaskPage> {
     
     return CommonLayout(
       title: 'Quản lý task',
-      child: Column(
+      floatingActionButton:
+          (selectedModuleId != null)
+              ? FloatingActionButton(
+                  onPressed: () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => CreateTaskPage(moduleId: selectedModuleId!),
+                      ),
+                    );
+                    if (result == true) fetchTasks(selectedModuleId!);
+                  },
+                  child: const Icon(Icons.add),
+                  tooltip: 'Tạo task mới',
+                  backgroundColor: Colors.blue,
+                )
+              : null,
+            child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Search and filter section
@@ -293,6 +334,26 @@ class _TaskPageState extends State<TaskPage> {
                 ),
                 const SizedBox(height: 16),
                 
+                // Search field
+                TextField(
+                  decoration: InputDecoration(
+                    hintText: 'Tìm kiếm theo tên, người đảm nhiệm...',
+                    prefixIcon: const Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  ),
+                  onChanged: (value) {
+                    setState(() {
+                      searchQuery = value;
+                    });
+                    filterTasks();
+                  },
+                ),
+                
+                const SizedBox(height: 16),
+                
                 // Project dropdown
                 DropdownButtonFormField<int>(
                   isExpanded: true,
@@ -317,6 +378,8 @@ class _TaskPageState extends State<TaskPage> {
                       selectedModuleId = null;
                       modules = [];
                       tasks = [];
+                      filteredTasks = [];
+                      searchQuery = '';
                     });
                     if (value != null) fetchModules(value);
                   },
@@ -345,9 +408,31 @@ class _TaskPageState extends State<TaskPage> {
                   onChanged: (value) {
                     setState(() {
                       selectedModuleId = value;
+                      searchQuery = '';
                     });
                     if (value != null) fetchTasks(value);
                   },
+                ),
+                
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    TextButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          searchQuery = '';
+                        });
+                        if (selectedModuleId != null) {
+                          filterTasks();
+                        }
+                      },
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Đặt lại'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.grey[700],
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -357,7 +442,7 @@ class _TaskPageState extends State<TaskPage> {
           Expanded(
             child: isLoading 
             ? const Center(child: CircularProgressIndicator()) 
-            : tasks.isEmpty 
+            : filteredTasks.isEmpty 
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -367,7 +452,7 @@ class _TaskPageState extends State<TaskPage> {
                         size: 64,
                         color: Colors.grey[400],
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 8),
                       Text(
                         'Không có task nào',
                         style: TextStyle(
@@ -398,34 +483,17 @@ class _TaskPageState extends State<TaskPage> {
           ),
         ],
       ),
-      floatingActionButton:
-          (selectedModuleId != null)
-              ? FloatingActionButton(
-                  onPressed: () async {
-                    final result = await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => CreateTaskPage(moduleId: selectedModuleId!),
-                      ),
-                    );
-                    if (result == true) fetchTasks(selectedModuleId!);
-                  },
-                  child: const Icon(Icons.add),
-                  tooltip: 'Tạo task mới',
-                  backgroundColor: Colors.blue,
-                )
-              : null,
     );
   }
 
   Widget _buildMobileTaskList() {
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      itemCount: tasks.length,
+      itemCount: filteredTasks.length,
       itemBuilder: (context, index) {
-        final task = tasks[index];
+        final task = filteredTasks[index];
         return Container(
-          margin: const EdgeInsets.only(bottom: 12),
+          margin: const EdgeInsets.only(bottom: 8),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
@@ -557,9 +625,9 @@ class _TaskPageState extends State<TaskPage> {
           // Table body
           Expanded(
             child: ListView.builder(
-              itemCount: tasks.length,
+              itemCount: filteredTasks.length,
               itemBuilder: (context, index) {
-                final task = tasks[index];
+                final task = filteredTasks[index];
                 return InkWell(
                   onTap: () {
                     Navigator.push(

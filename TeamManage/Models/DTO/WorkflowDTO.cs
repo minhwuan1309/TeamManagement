@@ -49,6 +49,11 @@ namespace TeamManage.Models.DTO
         public List<WorkflowStepDTO> Steps { get; set; }
     }
 
+    public class UpdateStepStatusDTO
+    {
+        public WorkflowStatus NewStatus { get; set; }
+    }
+
 }
 
 

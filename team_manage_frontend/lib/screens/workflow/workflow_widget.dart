@@ -4,7 +4,6 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:team_manage_frontend/api_service.dart';
 
-
 class WorkflowWidget extends StatefulWidget {
   final int? moduleId;
 
@@ -18,11 +17,39 @@ class _WorkflowWidgetState extends State<WorkflowWidget> {
   bool _isLoading = true;
   Map<String, dynamic>? _workflowData;
   String? _errorMessage;
+  String? _currentUserId;
+
+  final List<Map<String, String>> _statusOptions = [
+    {'value': 'inprogress', 'label': 'Đang tiến hành'},
+    {'value': 'testing', 'label': 'Đang kiểm thử'},
+    {'value': 'approving', 'label': 'Chờ duyệt'},
+    {'value': 'approved', 'label': 'Hoàn thành'},
+    {'value': 'rejected', 'label': 'Từ chối'},
+  ];
 
   @override
   void initState() {
     super.initState();
     _fetchWorkflowData();
+    _fetchCurrentUser();
+  }
+
+  Future<void> _fetchCurrentUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    final url = Uri.parse('$baseUrl/auth/me');
+
+    final response = await http.get(
+      url,
+      headers: {'Authorization': 'Bearer $token'},
+    );
+
+    if (response.statusCode == 200) {
+      final user = jsonDecode(response.body);
+      setState(() {
+        _currentUserId = user['id'];
+      });
+    }
   }
 
   Future<void> _fetchWorkflowData() async {
@@ -72,6 +99,111 @@ class _WorkflowWidgetState extends State<WorkflowWidget> {
         _errorMessage = 'Đã xảy ra lỗi: $e';
       });
     }
+  }
+
+  Future<void> _approveStep(int stepId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/workflow/update-step-status/$stepId'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'newStatus': 'approved'}),
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Duyệt bước thành công!')));
+        _fetchWorkflowData(); // reload lại bước
+      } else {
+        final msg = jsonDecode(response.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi: ${msg['message'] ?? response.body}')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Lỗi kết nối: $e')));
+    }
+  }
+
+  Future<void> _updateStatus(int stepId, String newStatus) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/workflow/update-step-status/$stepId'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'newStatus': newStatus}),
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Cập nhật trạng thái thành công')),
+        );
+        _fetchWorkflowData();
+      } else {
+        final msg = jsonDecode(response.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi: ${msg['message'] ?? response.body}')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Lỗi kết nối: $e')));
+    }
+  }
+
+  void _showStatusDialog(BuildContext context, int stepId) {
+    String? selectedStatus = _statusOptions.first['value'];
+
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Chọn trạng thái mới'),
+            content: DropdownButtonFormField<String>(
+              value: selectedStatus,
+              decoration: const InputDecoration(labelText: 'Trạng thái'),
+              items:
+                  _statusOptions.map((option) {
+                    return DropdownMenuItem<String>(
+                      value: option['value'],
+                      child: Text(option['label']!),
+                    );
+                  }).toList(),
+              onChanged: (value) {
+                selectedStatus = value;
+              },
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Hủy'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  Navigator.pop(context);
+                  if (selectedStatus != null) {
+                    await _updateStatus(stepId, selectedStatus!);
+                  }
+                },
+                child: const Text('Cập nhật'),
+              ),
+            ],
+          ),
+    );
   }
 
   @override
@@ -133,9 +265,10 @@ class _WorkflowWidgetState extends State<WorkflowWidget> {
 
   Widget _buildWorkflowSteps() {
     final stepsRaw = _workflowData?['steps'];
-    final List<Map<String, dynamic>> steps = (stepsRaw is Map && stepsRaw.containsKey(r'$values'))
-        ? List<Map<String, dynamic>>.from(stepsRaw[r'$values'])
-        : [];
+    final List<Map<String, dynamic>> steps =
+        (stepsRaw is Map && stepsRaw.containsKey(r'$values'))
+            ? List<Map<String, dynamic>>.from(stepsRaw[r'$values'])
+            : [];
 
     if (steps.isEmpty) {
       return const Text('Module này không có workflow');
@@ -159,7 +292,6 @@ class _WorkflowWidgetState extends State<WorkflowWidget> {
         (rawApprovals is Map && rawApprovals.containsKey(r'$values'))
             ? List<Map<String, dynamic>>.from(rawApprovals[r'$values'])
             : [];
-
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -191,19 +323,35 @@ class _WorkflowWidgetState extends State<WorkflowWidget> {
           const SizedBox(height: 8),
           const Text(
             'Người phê duyệt:',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 4),
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: approvals.map((approval) {
-              return _buildApproverChip(approval);
-            }).toList(),
+            children:
+                approvals.map((approval) {
+                  return _buildApproverChip(approval);
+                }).toList(),
           ),
+          if (_currentUserId != null &&
+              approvals.any((a) => a['approverId'] == _currentUserId) &&
+              status != 'approved')
+            Padding(
+              padding: const EdgeInsets.only(top: 6.0),
+              child: ElevatedButton.icon(
+                onPressed: () => _showStatusDialog(context, step['id']),
+                icon: const Icon(Icons.edit_calendar),
+                label: const Text('Cập nhật trạng thái'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -219,10 +367,7 @@ class _WorkflowWidgetState extends State<WorkflowWidget> {
         backgroundImage: avatar.isNotEmpty ? NetworkImage(avatar) : null,
         child: avatar.isEmpty ? Text(fullName[0].toUpperCase()) : null,
       ),
-      label: Text(
-        fullName,
-        style: const TextStyle(fontSize: 12),
-      ),
+      label: Text(fullName, style: const TextStyle(fontSize: 12)),
       backgroundColor: Colors.grey[100],
     );
   }
@@ -232,20 +377,40 @@ class _WorkflowWidgetState extends State<WorkflowWidget> {
     Color color;
 
     switch (status.toLowerCase()) {
-      case 'done':
-        label = 'Hoàn thành';
-        color = Colors.green;
-        break;
-      case 'inprogress':
-        label = 'Đang tiến hành';
-        color = Colors.blue;
+      case 'none':
+        label = 'Chưa bắt đầu';
+        color = Colors.grey;
         break;
       case 'pending':
         label = 'Chờ xử lý';
         color = Colors.orange;
         break;
+      case 'inprogress':
+        label = 'Đang tiến hành';
+        color = Colors.blue;
+        break;
+      case 'testing':
+        label = 'Đang kiểm thử';
+        color = Colors.indigo;
+        break;
+      case 'approving':
+        label = 'Chờ duyệt';
+        color = Colors.deepPurple;
+        break;
+      case 'approved':
+        label = 'Đã duyệt';
+        color = Colors.green;
+        break;
+      case 'done':
+        label = 'Hoàn thành';
+        color = Colors.green.shade700;
+        break;
+      case 'rejected':
+        label = 'Đã từ chối';
+        color = Colors.red;
+        break;
       default:
-        label = 'Chưa bắt đầu';
+        label = 'Không xác định';
         color = Colors.grey;
     }
 
@@ -301,15 +466,16 @@ class _WorkflowWidgetState extends State<WorkflowWidget> {
 class _ArrowPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.grey
-      ..strokeWidth = 1.5
-      ..style = PaintingStyle.stroke;
+    final paint =
+        Paint()
+          ..color = Colors.grey
+          ..strokeWidth = 1.5
+          ..style = PaintingStyle.stroke;
 
     final dashWidth = 4.0;
     final dashSpace = 3.0;
     final startX = size.width / 2;
-    
+
     double startY = 0;
     while (startY < size.height) {
       canvas.drawLine(
@@ -319,13 +485,13 @@ class _ArrowPainter extends CustomPainter {
       );
       startY += dashWidth + dashSpace;
     }
-    
+
     // Draw arrow head
     final path = Path();
     path.moveTo(startX - 5, size.height - 6);
     path.lineTo(startX, size.height);
     path.lineTo(startX + 5, size.height - 6);
-    
+
     canvas.drawPath(path, paint);
   }
 

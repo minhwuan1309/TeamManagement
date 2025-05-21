@@ -20,6 +20,8 @@
         None,
         InProgress,
         Testing,
-        Done
+        Approving,
+        Approved,
+        Rejected
     }
 }

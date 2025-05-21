@@ -5,9 +5,11 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:team_manage_frontend/api_service.dart';
 import 'package:team_manage_frontend/layouts/common_layout.dart';
+import 'package:team_manage_frontend/screens/modules/create_module_page.dart';
 import 'package:team_manage_frontend/screens/modules/edit_module_page.dart';
 import 'package:team_manage_frontend/screens/tasks/create_task_page.dart';
 import 'package:team_manage_frontend/screens/tasks/task_detail_page.dart';
+import 'package:team_manage_frontend/screens/workflow/create_workflow_page.dart';
 import 'package:team_manage_frontend/screens/workflow/workflow_widget.dart';
 
 class ModuleDetailPage extends StatefulWidget {
@@ -77,49 +79,17 @@ class _ModuleDetailPageState extends State<ModuleDetailPage> {
         headers: {'Authorization': 'Bearer $token'},
       );
 
-      print('Workflow API Response Code: ${res.statusCode}');
-
       if (res.statusCode == 200) {
         final workflowData = jsonDecode(res.body);
-
-        // Debug: In ra cấu trúc dữ liệu chi tiết
-        print('Workflow Data Structure:');
-        print('- Has steps: ${workflowData.containsKey('steps')}');
-
-        if (workflowData.containsKey('steps')) {
-          if (workflowData['steps'] is Map) {
-            print('- Steps is Map: true');
-            print(
-              '- Has \$values: ${workflowData['steps'].containsKey(r'$values')}',
-            );
-            if (workflowData['steps'].containsKey(r'$values')) {
-              final stepsList = workflowData['steps'][r'$values'];
-              print('- Number of steps: ${stepsList.length}');
-              if (stepsList.isNotEmpty) {
-                print('- First step sample: ${stepsList.first}');
-              }
-            }
-          } else if (workflowData['steps'] is List) {
-            print('- Steps is List: true');
-            print('- Number of steps: ${workflowData['steps'].length}');
-          } else {
-            print(
-              '- Steps is neither Map nor List: ${workflowData['steps'].runtimeType}',
-            );
-          }
-        }
-
         setState(() {
           currentWorkflow = workflowData;
         });
       } else {
-        print('Failed to load workflow: ${res.body}');
         setState(() {
           currentWorkflow = null;
         });
       }
     } catch (e) {
-      print('Exception when loading workflow: $e');
       setState(() {
         currentWorkflow = null;
       });
@@ -420,7 +390,7 @@ class _ModuleDetailPageState extends State<ModuleDetailPage> {
               MaterialPageRoute(
                 builder: (context) => EditModulePage(module: moduleWithMembers),
               ),
-            )..then((result) {
+            ).then((result) {
               if (result != null) {
                 if (result is Map) {
                   setState(() {
@@ -553,14 +523,9 @@ class _ModuleDetailPageState extends State<ModuleDetailPage> {
           SpeedDialChild(
             child: Icon(Icons.account_tree),
             label: 'Thêm workflow',
-            onTap: () {
-              // TODO: Thêm trang tạo workflow
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text("Chức năng Thêm Workflow chưa được triển khai"),
-                ),
-              );
-            },
+            onTap: () => Navigator.push(context, MaterialPageRoute(
+              builder: (_) => CreateWorkflowPage(moduleId: currentModule!['id']),
+            ))
           ),
         ],
       ),
@@ -995,9 +960,7 @@ class _ModuleDetailPageState extends State<ModuleDetailPage> {
                                         SizedBox(height: 16),
                                         Text(
                                           'Không có công việc nào.',
-                                          style: TextStyle(
-                                            color: Colors.grey[600],
-                                          ),
+                                          style: TextStyle(color: Colors.grey[600]),
                                         ),
                                         SizedBox(height: 8),
                                         ElevatedButton.icon(
@@ -1038,8 +1001,8 @@ class _ModuleDetailPageState extends State<ModuleDetailPage> {
                                       itemCount: tasks.length,
                                       itemBuilder: (context, index) {
                                         final task = tasks[index];
-                                        final String title =
-                                            task['title'] ?? 'Không có tiêu đề';
+                                        final String title = task['title'] ?? 'Không có tiêu đề';
+                                        final String? currentStepName = task['currentStepName'];
                                         final dynamic status = task['status'];
                                         final String startDate = _formatDate(
                                           task['startDate'],
@@ -1129,11 +1092,50 @@ class _ModuleDetailPageState extends State<ModuleDetailPage> {
                                                         Text(
                                                           title,
                                                           style: TextStyle(
-                                                            fontWeight:
-                                                                FontWeight.bold,
-                                                            fontSize: 16,
-                                                          ),
+                                                            fontWeight: FontWeight.bold,
+                                                            fontSize: 16
+                                                            ),
                                                         ),
+                                                        if (task['currentStepName'] !=
+                                                                null &&
+                                                            (task['currentStepName']
+                                                                    as String)
+                                                                .isNotEmpty)
+                                                          Padding(
+                                                            padding:
+                                                                const EdgeInsets.only(
+                                                                  top: 4.0,
+                                                                ),
+                                                            child: Row(
+                                                              children: [
+                                                                Icon(
+                                                                  Icons
+                                                                      .alt_route,
+                                                                  size: 16,
+                                                                  color:
+                                                                      Colors
+                                                                          .purple,
+                                                                ),
+                                                                const SizedBox(
+                                                                  width: 4,
+                                                                ),
+                                                                Text(
+                                                                  'Bước hiện tại: ${task['currentStepName']}',
+                                                                  style: const TextStyle(
+                                                                    fontSize:
+                                                                        13,
+                                                                    color:
+                                                                        Colors
+                                                                            .purple,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .w500,
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          ),
+
                                                         SizedBox(height: 8),
                                                         Wrap(
                                                           spacing: 8,
@@ -1176,9 +1178,7 @@ class _ModuleDetailPageState extends State<ModuleDetailPage> {
                                                                         status,
                                                                       ),
                                                                   fontSize: 12,
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .w500,
+                                                                  fontWeight: FontWeight.w500,
                                                                 ),
                                                               ),
                                                             ),
@@ -1280,10 +1280,7 @@ class _ModuleDetailPageState extends State<ModuleDetailPage> {
                                                   Container(
                                                     width: 32,
                                                     height: 32,
-                                                    decoration: BoxDecoration(
-                                                      color: Colors.grey[100],
-                                                      shape: BoxShape.circle,
-                                                    ),
+                                                    decoration: BoxDecoration(color: Colors.grey[100], shape: BoxShape.circle),
                                                     child: Icon(
                                                       Icons.chevron_right,
                                                       color: Colors.grey[600],

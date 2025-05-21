@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -22,8 +23,9 @@ namespace TeamManage.Controllers
         public async Task<IActionResult> GetIssuesByTask(int taskId)
         {
             var issues = await _context.Issues
-                        .Where(i => i.TaskItemId == taskId && !i.IsDeleted)
                         .Include(i => i.Files)
+                        .Include(i => i.CreatedBy)
+                        .Where(i => i.TaskItemId == taskId && !i.IsDeleted)
                         .ToListAsync();
 
             return Ok(issues);
@@ -34,7 +36,9 @@ namespace TeamManage.Controllers
         public async Task<IActionResult> GetIssueById(int id)
         {
             var issue = await _context.Issues
-                .Include(i => i.Files).FirstOrDefaultAsync(i => i.Id == id && !i.IsDeleted);
+                .Include(i => i.Files)
+                .Include(i => i.CreatedBy)
+                .FirstOrDefaultAsync(i => i.Id == id && !i.IsDeleted);
             if (issue == null)
                 return NotFound("Không tìm thấy issue.");
             return Ok(issue);
@@ -48,6 +52,7 @@ namespace TeamManage.Controllers
             if (task == null)
                 return NotFound("Không tìm thấy task.");
 
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             
             if(string.IsNullOrWhiteSpace(title))
                 return BadRequest("Tiêu đề không được để trống!");
@@ -61,6 +66,7 @@ namespace TeamManage.Controllers
                 IsDeleted = false,
                 Status = ProcessStatus.None,
                 TaskItemId = taskId,
+                CreatedById = userId,
                 CreatedAt = DateTime.Now,
                 UpdatedAt = DateTime.Now
             };

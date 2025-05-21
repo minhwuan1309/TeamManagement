@@ -23,6 +23,7 @@ namespace TeamManage.Controllers
         {
             var tasks = await _context.TaskItems
                         .Include(t => t.AssignedUser)
+                        .Include(t => t.CurrentStep)
                         .Where(t => t.ModuleId == moduleId && !t.IsDeleted)
                         .ToListAsync();
 
@@ -36,10 +37,12 @@ namespace TeamManage.Controllers
                 StartDate = t.StartDate,
                 EndDate = t.EndDate,
                 IsDeleted = t.IsDeleted,
-                CreatedAt = t.CreatedAt,
-                UpdatedAt = t.UpdatedAt,
+                CurrentStepId = t.CurrentStepId,
+                CurrentStepName = t.CurrentStep?.StepName,
                 AssignedUserId = t.AssignedUserId,
-                AssignedUserName = t.AssignedUser?.FullName
+                AssignedUserName = t.AssignedUser?.FullName,
+                CreatedAt = t.CreatedAt,
+                UpdatedAt = t.UpdatedAt
             });
 
             return Ok(result);
@@ -50,6 +53,7 @@ namespace TeamManage.Controllers
         {
             var task = await _context.TaskItems
                 .Include(t => t.AssignedUser)
+                .Include(t => t.CurrentStep)
                 .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
 
             var result = new TaskDTO
@@ -62,10 +66,12 @@ namespace TeamManage.Controllers
                 StartDate = task.StartDate,
                 EndDate = task.EndDate,
                 IsDeleted = task.IsDeleted,
+                AssignedUserId = task.AssignedUserId,
+                AssignedUserName = task.AssignedUser?.FullName,
+                CurrentStepId = task.CurrentStepId,
+                CurrentStepName = task.CurrentStep?.StepName,
                 CreatedAt = task.CreatedAt,
                 UpdatedAt = task.UpdatedAt,
-                AssignedUserId = task.AssignedUserId,
-                AssignedUserName = task.AssignedUser?.FullName
             };
 
             return Ok(result);

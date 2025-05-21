@@ -5,7 +5,7 @@ import 'package:team_manage_frontend/screens/auth/register_screen.dart';
 import 'package:team_manage_frontend/screens/auth/reset_password_screen.dart';
 import 'package:team_manage_frontend/screens/auth/verify_email_screen.dart';
 import 'package:team_manage_frontend/screens/modules/create_module_page.dart';
-import 'package:team_manage_frontend/screens/modules/module_page.dart';
+import 'package:team_manage_frontend/screens/modules/module_detail_page.dart';
 import 'package:team_manage_frontend/screens/project/create_project_page.dart';
 import 'package:team_manage_frontend/screens/project/project_page.dart';
 import 'package:team_manage_frontend/screens/tasks/task_page.dart';
@@ -27,6 +27,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'TeamManage',
       theme: ThemeData(primarySwatch: Colors.blue),
+
       initialRoute: '/login',
       routes: {
         '/login': (context) => const LoginScreen(),
@@ -44,22 +45,35 @@ class MyApp extends StatelessWidget {
         '/project/create': (context) => const CreateProjectPage(),
 
         //Module
-        '/module': (context) => const ModulePage(),
         '/module/create': (context) {
-            final args = ModalRoute.of(context)?.settings.arguments;
-            if (args is int) {
-              return CreateModulePage(projectId: args);
-            } else {
-              return const Scaffold(
-                body: Center(child: Text("Lỗi: projectId không hợp lệ")),
-              );
-            }
-          },
-        
+          final args = ModalRoute.of(context)?.settings.arguments;
+          if (args is Map && args['projectId'] is int) {
+            return CreateModulePage(
+              projectId: args['projectId'] as int,
+              parentModuleId: args['parentModuleId'] as int?,
+              projectMembers: List<Map<String, dynamic>>.from(args['projectMembers'] ?? []),
+            );
+          } else {
+            return const Scaffold(
+              body: Center(child: Text("Lỗi: thiếu hoặc sai projectId")),
+            );
+          }
+        },
+
+
+        '/module-detail': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          if (args is int) {
+            return ModuleDetailPage.withId(moduleId: args);
+          } else {
+            return const Scaffold(
+              body: Center(child: Text("Lỗi: moduleId không hợp lệ")),
+            );
+          }
+        },
+
         //Tasks
         '/task': (context) => const TaskPage(),
-
-
       },
     );
   }

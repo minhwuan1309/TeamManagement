@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -40,6 +41,9 @@ namespace TeamManage.Controllers
 
             foreach (var stepDto in dto.Steps.OrderBy(s => s.Order))
             {
+                if (string.IsNullOrWhiteSpace(stepDto.StepName) || stepDto.Approvers == null || !stepDto.Approvers.Any())
+                    continue; // bỏ qua bước không hợp lệ
+
                 var step = new WorkflowStep
                 {
                     StepName = stepDto.StepName,
@@ -52,7 +56,6 @@ namespace TeamManage.Controllers
                 };
                 workflow.Steps.Add(step);
             }
-
 
             _context.Workflows.Add(workflow);
             await _context.SaveChangesAsync();
@@ -126,7 +129,7 @@ namespace TeamManage.Controllers
             if (!isApprover)
                 return Forbid("Bạn không có quyền duyệt bước này.");
 
-            task.CurrentStep.Status = WorkflowStatus.Done;
+            task.CurrentStep.Status = WorkflowStatus.Approved;
             task.CurrentStep.CompletedAt = DateTime.Now;
 
             var currentStepOrder = task.CurrentStep.Order;
@@ -169,7 +172,7 @@ namespace TeamManage.Controllers
             if (task == null)
                 return NotFound("Không tìm thấy task.");
 
-            if( task.Module?.Workflow == null)
+            if (task.Module?.Workflow == null)
                 return NotFound("Task không thuộc module có workflow.");
 
             if (task.CurrentStepId != null)
@@ -178,7 +181,7 @@ namespace TeamManage.Controllers
             var firstStep = task.Module.Workflow.Steps.OrderBy(s => s.Order).FirstOrDefault();
             if (firstStep == null)
                 return NotFound("Workflow không có bước nào để gán.");
-        
+
             task.CurrentStepId = firstStep.Id;
             task.Status = ProcessStatus.InProgress;
 
@@ -190,14 +193,14 @@ namespace TeamManage.Controllers
                 message = $"Đã gán bước '{firstStep.StepName}' trong 'workflow cho task",
                 stepId = firstStep.Id,
                 stepName = firstStep.StepName
-                
+
             });
         }
 
 
         //================= Get Current Step of Task ================
 
-        [HttpGet("steps/{taskId}")]
+        [HttpGet("step/{taskId}")]
         public async Task<IActionResult> GetCurrentStepOfTask(int taskId)
         {
             var task = await _context.TaskItems
@@ -210,36 +213,101 @@ namespace TeamManage.Controllers
                 return NotFound("Không tìm thấy task.");
 
             if (task.CurrentStep == null)
-                return Ok(new {
+            {
+                return Ok(new
+                {
                     taskId = task.Id,
-                    title = task.Title,
-                    currtentStep = (object?)null
+                    taskTitle = task.Title,
+                    currentStep = (WorkflowStepDTO?)null
                 });
+            }
 
             var step = task.CurrentStep;
-            var stepDto = new
+
+            var stepDto = new WorkflowStepDTO
             {
-                stepId = step.Id,
-                stepName = step.StepName,
-                order = step.Order,
-                status = step.Status.ToString().ToLower(),
-                approvers = step.Approvals.Select(a => new
+                Id = step.Id,
+                StepName = step.StepName,
+                Order = step.Order,
+                Status = step.Status.ToString().ToLower(),
+                Approvals = step.Approvals.Select(a => new WorkflowApproverDTO
                 {
-                    approverId = a.ApproverId,
-                    fullName = a.Approver.FullName,
-                    avatar = a.Approver.Avatar,
-                    role = a.Approver.Role.ToString().ToLower(),
+                    ApproverId = a.ApproverId,
+                    FullName = a.Approver.FullName,
+                    Avatar = a.Approver.Avatar,
+                    Role = a.Approver.Role.ToString().ToLower()
                 }).ToList()
             };
 
             return Ok(new
             {
                 taskId = task.Id,
-                title = task.Title,
-                currtentStep = stepDto
+                taskTitle = task.Title,
+                currentStep = stepDto
             });
         }
 
+
+        //================= Update Step Status ================
+        [HttpPut("update-step-status/{stepId}")]
+        public async Task<IActionResult> UpdateStepStatus(int stepId, [FromBody] UpdateStepStatusDTO dto)
+        {
+            var step = await _context.WorkflowSteps
+                .Include(a => a.Approvals)
+                .FirstOrDefaultAsync(s => s.Id == stepId);
+
+            if (step == null)
+                return NotFound("Không tìm thấy workflow step.");
+
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+
+            if (!step.Approvals.Any(a => a.ApproverId == userId))
+                return StatusCode(403, "Bạn không có quyền duyệt bước này.");
+
+
+            step.Status = dto.NewStatus;
+            if (dto.NewStatus == WorkflowStatus.Approved)
+            {
+                step.CompletedAt = DateTime.Now;
+            }
+
+            _context.WorkflowSteps.Update(step);
+            await _context.SaveChangesAsync();
+            return Ok(new
+            {
+                message = $"Cập nhật trạng thái bước '{step.StepName}' thành công!",
+                stepId = step.Id,
+                newStatus = step.Status.ToString().ToLower()
+            });
+        }
+
+        //================= Update Approver ================
+        [HttpPut("step/{stepId}/approver")]
+        public async Task<IActionResult> UpdateApprover(int stepId, [FromBody] WorkflowApproverInputDTO dto)
+        {
+            var step = await _context.WorkflowSteps
+                .Include(s => s.Approvals)
+                .FirstOrDefaultAsync(s => s.Id == stepId);
+
+            if(step == null)
+                return NotFound("Không tìm thấy workflow step.");
+
+            _context.WorkflowStepApprovals.RemoveRange(step.Approvals);
+            var newApprovals = new WorkflowStepApproval
+            {
+                ApproverId = dto.ApproverId,
+                WorkflowStepId = stepId
+            };
+
+            _context.WorkflowStepApprovals.AddRange(newApprovals);
+            await _context.SaveChangesAsync();
+            return Ok(new
+            {
+                message = $"Cập nhật người duyệt '{step.StepName}' thanh cong!",
+                approverId = dto.ApproverId
+            });
+        }
     }
 }
 

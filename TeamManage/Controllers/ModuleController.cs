@@ -28,6 +28,7 @@ namespace TeamManage.Controllers
                 {
                     Id = m.Id,
                     Name = m.Name,
+                    Code = m.Code,
                     Status = m.Status,
                     MemberCount = m.ModuleMembers.Count(mb => !mb.IsDeleted),
                     IsDeleted = m.IsDeleted
@@ -35,6 +36,40 @@ namespace TeamManage.Controllers
                 .ToListAsync();
 
             return Ok(modules);
+        }
+
+        [HttpGet("tree")]
+        public async Task<IActionResult> GetModuleTree([FromQuery] int projectId)
+        {
+            var modules = await _context.Modules
+                .Where(m => m.ProjectId == projectId && !m.IsDeleted)
+                .Select(m => new ModuleTreeDTO
+                {
+                    Id = m.Id,
+                    Name = m.Name,
+                    Code = m.Code,
+                    Status = m.Status,
+                    MemberCount = m.ModuleMembers.Count(mb => !mb.IsDeleted),
+                    IsDeleted = m.IsDeleted,
+                    ParentModuleId = m.ParentModuleId,
+                    ProjectId = m.ProjectId
+                })
+                .ToListAsync();
+
+            var tree = BuildTree(modules, null);
+            return Ok(tree);
+        }
+        
+        private List<ModuleTreeDTO> BuildTree(List<ModuleTreeDTO> all, int? parentId)
+        {
+            return all
+                .Where(m => m.ParentModuleId == parentId)
+                .Select(m =>
+                {
+                    m.Children = BuildTree(all, m.Id);
+                    return m;
+                })
+                .ToList();
         }
 
         [HttpGet("{id}")]
@@ -56,7 +91,8 @@ namespace TeamManage.Controllers
                 ProjectId = module.ProjectId,
                 Name = module.Name,
                 Status = module.Status,
-                // Chỉ sử dụng Members để chứa thông tin đầy đủ về thành viên
+                Code = module.Code,
+                ParentModuleId = module.ParentModuleId,
                 Members = module.ModuleMembers
                             .Where(mb => !mb.IsDeleted && mb.User != null)
                             .Select(mb => new MemberDTO
@@ -64,7 +100,7 @@ namespace TeamManage.Controllers
                                 UserId = mb.UserId,
                                 FullName = mb.User.FullName,
                                 Avatar = mb.User.Avatar,
-                                RoleInProject = mb.User.Role, 
+                                RoleInProject = mb.User.Role,
                             })
                             .ToList(),
                 Tasks = module.Tasks
@@ -80,7 +116,7 @@ namespace TeamManage.Controllers
                                 AssignedUserName = t.AssignedUser?.FullName
                             })
                             .ToList(),
-                        
+
                 IsDeleted = module.IsDeleted,
                 CreatedAt = module.CreatedAt,
                 UpdatedAt = module.UpdatedAt
@@ -93,14 +129,19 @@ namespace TeamManage.Controllers
         [HttpPost("create")]
         public async Task<IActionResult> CreateModule([FromBody] ModuleDTO moduleDTO)
         {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
             var module = new Module
             {
                 Name = moduleDTO.Name,
                 ProjectId = moduleDTO.ProjectId,
-                Status = moduleDTO.Status,
+                Status = ProcessStatus.None,
                 IsDeleted = false,
                 CreatedAt = DateTime.Now,
                 UpdatedAt = DateTime.Now,
+                Code = "pending",
+                ParentModuleId = moduleDTO.ParentModuleId,
                 ModuleMembers = moduleDTO.Members != null ?
                     moduleDTO.Members.Select(member => new ModuleMember
                     {
@@ -113,10 +154,85 @@ namespace TeamManage.Controllers
             _context.Modules.Add(module);
             await _context.SaveChangesAsync();
 
+            if (moduleDTO.ParentModuleId != null)
+            {
+                module.ParentModuleId = moduleDTO.ParentModuleId;
+            }
+            module.Code = await GenerateModuleCode(moduleDTO.ParentModuleId, module.Id);
+
+            _context.Modules.Update(module);
+            await _context.SaveChangesAsync();
+
             return Ok(new { message = "Tạo module thành công", module });
         }
 
-        // ====================== Update Module ======================
+        // Tạo mã module dựa trên ParentModuleId "1.0.0; 1.1.0; 1.2.0"
+        private async Task<string> GenerateModuleCode(int? parentModuleId, int currentModuleId = 0)
+        {
+            // Nếu là module gốc
+            if (parentModuleId == null)
+            {
+                return $"{currentModuleId}.0.0";
+            }
+
+            // Lấy module cha
+            var parent = await _context.Modules
+                .FirstOrDefaultAsync(m => m.Id == parentModuleId && !m.IsDeleted);
+
+            if (parent == null || string.IsNullOrWhiteSpace(parent.Code))
+            {
+                return $"{currentModuleId}.0.0"; // fallback
+            }
+
+            var parts = parent.Code.Split('.');
+            if (parts.Length != 3)
+            {
+                return $"{currentModuleId}.0.0"; // fallback
+            }
+
+            var rootId = parts[0];              // ID của module gốc
+            var parentLevel = int.Parse(parts[1]);  // phần giữa
+            var parentSuffix = int.Parse(parts[2]); // phần cuối
+
+            // Đếm số lượng con hiện tại
+            var siblingCount = await _context.Modules
+                .CountAsync(m => m.ParentModuleId == parentModuleId && !m.IsDeleted);
+
+            var childIndex = siblingCount + 1;
+
+            // Nếu cha là root (x.0.0) thì dùng dạng x.1.0, x.2.0
+            if (parentLevel == 0 && parentSuffix == 0)
+            {
+                return $"{rootId}.{childIndex}.0";
+            }
+
+            // Nếu cha là cấp con (x.y.0), sinh dạng x.y.1, x.y.2,...
+            return $"{rootId}.{parentLevel}.{childIndex}";
+        }
+
+
+
+        // Build Module Tree
+        private List<ModuleDTO> BuildModuleTree(List<Module> modules, int? parentId)
+        {
+            return modules
+                .Where(m => m.ParentModuleId == parentId)
+                .Select(m => new ModuleDTO
+                {
+                    Id = m.Id,
+                    ProjectId = m.ProjectId,
+                    Code = m.Code,
+                    Name = m.Name,
+                    ParentModuleId = m.ParentModuleId,
+                    Status = m.Status,
+                    IsDeleted = m.IsDeleted,
+                    CreatedAt = m.CreatedAt,
+                    UpdatedAt = m.UpdatedAt,
+                    Children = BuildModuleTree(modules, m.Id)
+                })
+                .ToList();
+        }
+
 
         [HttpPut("update/{id}")]
         public async Task<IActionResult> UpdateModule(int id, [FromBody] ModuleDTO moduleDTO)
@@ -244,6 +360,24 @@ namespace TeamManage.Controllers
                 return NotFound("Không tìm thấy thành viên nào trong module.");
 
             return Ok(members);
+        }
+
+        // Cập nhật code phân cấp module
+        [HttpPut("rebuild-codes")]
+        public async Task<IActionResult> RebuildAllModuleCodes()
+        {
+            var modules = await _context.Modules
+                .ToListAsync();
+
+            foreach (var module in modules)
+            {
+                module.Code = await GenerateModuleCode(module.ParentModuleId, module.Id);
+            }
+
+            _context.Modules.UpdateRange(modules);
+            await _context.SaveChangesAsync();
+
+            return Ok("Đã cập nhật lại Code cho tất cả module.");
         }
     }
 }

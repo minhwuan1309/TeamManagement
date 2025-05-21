@@ -12,6 +12,8 @@
         public bool IsDeleted { get; set; }
         public string? AssignedUserId { get; set; }
         public string? AssignedUserName { get; set; }
+        public int? CurrentStepId { get; set; }
+        public string? CurrentStepName { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
     }
