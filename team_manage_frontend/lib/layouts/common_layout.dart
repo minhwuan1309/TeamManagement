@@ -342,8 +342,8 @@ class _CommonLayoutState extends State<CommonLayout> {
                   Row(
                     children: [
                       Container(
-                        width: 8,
-                        height: 8,
+                        width: 10,
+                        height: 10,
                         decoration: BoxDecoration(
                           color: Colors.green,
                           shape: BoxShape.circle,
@@ -352,12 +352,12 @@ class _CommonLayoutState extends State<CommonLayout> {
                       SizedBox(width: 4),
                       Text(
                         "Xong",
-                        style: TextStyle(fontSize: 10),
+                        style: TextStyle(fontSize: 12),
                       ),
                       SizedBox(width: 8),
                       Container(
-                        width: 8,
-                        height: 8,
+                        width: 10,
+                        height: 10,
                         decoration: BoxDecoration(
                           color: Colors.orange,
                           shape: BoxShape.circle,
@@ -366,30 +366,28 @@ class _CommonLayoutState extends State<CommonLayout> {
                       SizedBox(width: 4),
                       Text(
                         "Đang làm",
-                        style: TextStyle(fontSize: 10),
+                        style: TextStyle(fontSize: 12),
                       ),
+                      SizedBox(width: 8),
+                      Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: Colors.grey,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      SizedBox(width: 4),
+                      Text(
+                        "Chưa làm",
+                        style: TextStyle(fontSize: 12),
+                      )
                     ],
                   ),
                 ],
               ),
             ),
-            // Thêm TextFormField cho tìm kiếm
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: TextFormField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Tìm module',
-                  prefixIcon: Icon(Icons.search, size: 20),
-                  contentPadding: EdgeInsets.symmetric(vertical: 0),
-                  isDense: true,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
-                  ),
-                ),
-              ),
-            ),
+
             if (selectedProjectId != null && treeModulesData != null)
               ModuleDropdownWidget(modules: treeModulesData!, projectMembers: projectMembers),
           ],
