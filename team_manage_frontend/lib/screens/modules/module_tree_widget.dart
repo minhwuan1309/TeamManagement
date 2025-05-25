@@ -222,10 +222,10 @@ class _ModuleDropdownWidgetState extends State<ModuleDropdownWidget> {
                 Expanded(
                   child: InkWell(
                     onTap: () {
+                      final moduleId = module['id'];
                       Navigator.pushNamed(
                         context,
-                        '/module-detail',
-                        arguments: module['id'],
+                        '/module-detail?id=$moduleId',
                       );
                     },
                     child: Padding(

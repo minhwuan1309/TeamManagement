@@ -28,21 +28,42 @@ class ModuleDetailPage extends StatefulWidget {
 
 class _ModuleDetailPageState extends State<ModuleDetailPage> {
   bool isUpdating = false;
-  Map? currentModule;
   bool isLoading = true;
+  Map? currentModule;
   Map? currentWorkflow;
+  String? errorMessage;
 
   @override
   void initState() {
     super.initState();
+
+    // 1. Ưu tiên truyền trực tiếp module từ widget
     if (widget.module != null) {
       currentModule = widget.module!;
       isLoading = false;
-    } else if (widget.moduleId != null) {
+    } 
+    // 2. Nếu có moduleId từ constructor
+    else if (widget.moduleId != null) {
       fetchModule(widget.moduleId!);
       fetchWorkflow(widget.moduleId!);
+    } 
+    // 3. Trường hợp F5: lấy moduleId từ URL query
+    else {
+      final idParam = Uri.base.queryParameters['id'];
+      final parsedId = int.tryParse(idParam ?? '');
+      if (parsedId != null) {
+        fetchModule(parsedId);
+        fetchWorkflow(parsedId);
+      } else {
+        setState(() {
+          isLoading = false;
+          errorMessage = "Lỗi: moduleId không hợp lệ";
+        });
+      }
     }
   }
+
+
 
   Future<void> fetchModule(int moduleId) async {
     setState(() => isLoading = true);
@@ -375,6 +396,123 @@ class _ModuleDetailPageState extends State<ModuleDetailPage> {
       title: 'Chi tiết Module',
       appBarActions: [
         IconButton(
+          icon: const Icon(Icons.group, color: Colors.blue),
+          tooltip: 'Thành viên',
+          onPressed: () {
+            showDialog(
+              context: context,
+              builder: (context) {
+                return AlertDialog(
+                  title: const Text('Danh sách thành viên'),
+                  content: members.isEmpty
+                      ? Container(
+                          padding: const EdgeInsets.symmetric(vertical: 24),
+                          alignment: Alignment.center,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.group_off,
+                                size: 48,
+                                color: Colors.grey[300],
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                'Không có thành viên nào.',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : Container(
+                          constraints: const BoxConstraints(maxHeight: 300),
+                          width: MediaQuery.of(context).size.width * 0.6,
+                          child: ListView.separated(
+                            shrinkWrap: true,
+                            itemCount: members.length,
+                            separatorBuilder: (context, index) => const Divider(height: 1),
+                            itemBuilder: (context, index) {
+                              final member = members[index];
+                              final String fullName = member['fullName'] ?? 'Không tên';
+                              final String? avatarUrl = member['avatar'];
+                              final String role = member['roleInProject'] ?? 'Không có vai trò';
+
+                              return ListTile(
+                                contentPadding: const EdgeInsets.symmetric(
+                                  vertical: 4,
+                                  horizontal: 8,
+                                ),
+                                leading: Container(
+                                  width: 45,
+                                  height: 45,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.blue.withOpacity(0.1),
+                                    border: Border.all(
+                                      color: Colors.blue.withOpacity(0.3),
+                                    ),
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(50),
+                                    child: avatarUrl != null && avatarUrl.isNotEmpty
+                                        ? Image.network(
+                                            avatarUrl,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (context, error, stackTrace) => const Icon(
+                                              Icons.person,
+                                              color: Colors.blue,
+                                              size: 28,
+                                            ),
+                                          )
+                                        : const Icon(
+                                            Icons.person,
+                                            color: Colors.blue,
+                                            size: 28,
+                                          ),
+                                  ),
+                                ),
+                                title: Text(
+                                  fullName,
+                                  style: const TextStyle(fontWeight: FontWeight.w500),
+                                ),
+                                subtitle: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: Colors.blue.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        role,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.blue[700],
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('Đóng'),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+        ),
+
+        IconButton(
           icon: const Icon(Icons.edit, color: Colors.orange),
           tooltip: 'Chỉnh sửa Module',
           onPressed: () {
@@ -503,17 +641,20 @@ class _ModuleDetailPageState extends State<ModuleDetailPage> {
         icon: Icons.keyboard_arrow_up, // mũi tên ^
         activeIcon: Icons.close,
         backgroundColor: Colors.blue,
+        overlayOpacity: 0,
+        overlayColor: Colors.transparent,
         children: [
           SpeedDialChild(
             child: Icon(Icons.add_task),
             label: 'Thêm task',
-            onTap: () {
+            onTap: () async {
+              if (mounted) setState(() {}); // đảm bảo cập nhật layout trước
+              await Future.delayed(Duration(milliseconds: 100));
+
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder:
-                      (context) =>
-                          CreateTaskPage(moduleId: currentModule!['id']),
+                  builder: (context) => CreateTaskPage(moduleId: currentModule!['id']),
                 ),
               ).then((shouldReload) {
                 if (shouldReload == true) _refreshModuleData();
@@ -523,9 +664,17 @@ class _ModuleDetailPageState extends State<ModuleDetailPage> {
           SpeedDialChild(
             child: Icon(Icons.account_tree),
             label: 'Thêm workflow',
-            onTap: () => Navigator.push(context, MaterialPageRoute(
-              builder: (_) => CreateWorkflowPage(moduleId: currentModule!['id']),
-            ))
+            onTap: () async{
+              if (mounted) setState(() {});
+              await Future.delayed(Duration(milliseconds: 100));
+
+              Navigator.push(context, MaterialPageRoute(
+                builder: (_) => CreateWorkflowPage(moduleId: currentModule!['id']),
+              ),
+              ).then((shouldReload) {
+                if (shouldReload == true) _refreshModuleData();
+              });
+            } 
           ),
         ],
       ),
@@ -755,162 +904,6 @@ class _ModuleDetailPageState extends State<ModuleDetailPage> {
                           ),
                         ),
                       ),
-
-                      const SizedBox(height: 16),
-
-                      // Phần Thành viên
-                      Card(
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  const Icon(Icons.people, color: Colors.blue),
-                                  const SizedBox(width: 12),
-                                  Text(
-                                    'Danh sách thành viên',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.blue,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const Divider(height: 24, thickness: 1),
-
-                              members.isEmpty
-                                  ? Container(
-                                    padding: EdgeInsets.symmetric(vertical: 24),
-                                    alignment: Alignment.center,
-                                    child: Column(
-                                      children: [
-                                        Icon(
-                                          Icons.group_off,
-                                          size: 48,
-                                          color: Colors.grey[300],
-                                        ),
-                                        SizedBox(height: 12),
-                                        Text(
-                                          'Không có thành viên nào.',
-                                          style: TextStyle(
-                                            color: Colors.grey[600],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  )
-                                  : Container(
-                                    constraints: BoxConstraints(maxHeight: 200),
-                                    child: ListView.separated(
-                                      shrinkWrap: true,
-                                      physics: AlwaysScrollableScrollPhysics(),
-                                      itemCount: members.length,
-                                      separatorBuilder:
-                                          (context, index) =>
-                                              Divider(height: 1),
-                                      itemBuilder: (context, index) {
-                                        final member = members[index];
-                                        final String fullName =
-                                            member['fullName'] ?? 'Không tên';
-                                        final String? avatarUrl =
-                                            member['avatar'];
-                                        final String role =
-                                            member['roleInProject'] ??
-                                            'Không có vai trò';
-
-                                        return ListTile(
-                                          contentPadding: EdgeInsets.symmetric(
-                                            vertical: 4,
-                                            horizontal: 8,
-                                          ),
-                                          leading: Container(
-                                            width: 45,
-                                            height: 45,
-                                            decoration: BoxDecoration(
-                                              shape: BoxShape.circle,
-                                              color: Colors.blue.withOpacity(
-                                                0.1,
-                                              ),
-                                              border: Border.all(
-                                                color: Colors.blue.withOpacity(
-                                                  0.3,
-                                                ),
-                                              ),
-                                            ),
-                                            child: ClipRRect(
-                                              borderRadius:
-                                                  BorderRadius.circular(50),
-                                              child:
-                                                  avatarUrl != null &&
-                                                          avatarUrl.isNotEmpty
-                                                      ? Image.network(
-                                                        avatarUrl,
-                                                        fit: BoxFit.cover,
-                                                        errorBuilder:
-                                                            (
-                                                              context,
-                                                              error,
-                                                              stackTrace,
-                                                            ) => Icon(
-                                                              Icons.person,
-                                                              color:
-                                                                  Colors.blue,
-                                                              size: 28,
-                                                            ),
-                                                      )
-                                                      : Icon(
-                                                        Icons.person,
-                                                        color: Colors.blue,
-                                                        size: 28,
-                                                      ),
-                                            ),
-                                          ),
-                                          title: Text(
-                                            fullName,
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                          subtitle: Row(
-                                            children: [
-                                              Container(
-                                                padding: EdgeInsets.symmetric(
-                                                  horizontal: 8,
-                                                  vertical: 3,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.blue
-                                                      .withOpacity(0.1),
-                                                  borderRadius:
-                                                      BorderRadius.circular(12),
-                                                ),
-                                                child: Text(
-                                                  role,
-                                                  style: TextStyle(
-                                                    fontSize: 12,
-                                                    color: Colors.blue[700],
-                                                    fontWeight: FontWeight.w500,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                            ],
-                          ),
-                        ),
-                      ),
-
                       //Workflow
                       const SizedBox(height: 10),
                       WorkflowWidget(moduleId: currentModule!['id']),

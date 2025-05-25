@@ -7,7 +7,7 @@ import 'package:team_manage_frontend/screens/auth/verify_email_screen.dart';
 import 'package:team_manage_frontend/screens/modules/create_module_page.dart';
 import 'package:team_manage_frontend/screens/modules/module_detail_page.dart';
 import 'package:team_manage_frontend/screens/project/create_project_page.dart';
-import 'package:team_manage_frontend/screens/project/project_page.dart';
+import 'package:team_manage_frontend/screens/tasks/create_task_page.dart';
 import 'package:team_manage_frontend/screens/tasks/task_page.dart';
 import 'screens/home_screen.dart';
 import 'screens/user/create_user_page.dart';
@@ -28,52 +28,89 @@ class MyApp extends StatelessWidget {
       title: 'TeamManage',
       theme: ThemeData(primarySwatch: Colors.blue),
 
-      initialRoute: '/login',
-      routes: {
-        '/login': (context) => const LoginScreen(),
-        '/verify-email': (context) => const VerifyEmailScreen(),
-        '/register': (context) => const RegisterScreen(),
-        '/home': (context) => const HomeScreen(),
-        '/user': (context) => const UserPage(),
-        '/user/create': (context) => const CreateUserPage(),
-        '/profile': (context) => const ProfileScreen(),
-        '/forgot-password': (context) => const ForgotPasswordScreen(),
-        '/reset-password': (context) => const ResetPasswordScreen(),
+      initialRoute: '/home',
+      onGenerateRoute: (settings) {
+        final uri = Uri.parse(settings.name ?? '');
+        final pathSegments = uri.pathSegments;
 
-        //Project
-        '/project': (context) => const ProjectPage(),
-        '/project/create': (context) => const CreateProjectPage(),
+        // Basic routes
+        if (uri.path == '/home') return MaterialPageRoute(builder: (context) => const HomeScreen());
+        if (uri.path == '/login') return MaterialPageRoute(builder: (context) => const LoginScreen());
+        if (uri.path == '/verify-email') return MaterialPageRoute(builder: (context) => const VerifyEmailScreen());
+        if (uri.path == '/register') return MaterialPageRoute(builder: (context) => const RegisterScreen());
+        if (uri.path == '/forgot-password') return MaterialPageRoute(builder: (context) => const ForgotPasswordScreen());
+        if (uri.path == '/reset-password') return MaterialPageRoute(builder: (context) => const ResetPasswordScreen());
+        if (uri.path == '/profile') return MaterialPageRoute(builder: (context) => const ProfileScreen());
 
-        //Module
-        '/module/create': (context) {
-          final args = ModalRoute.of(context)?.settings.arguments;
+        // User routes - RESTful style
+        if (uri.path == '/user') return MaterialPageRoute(builder: (context) => const UserPage());
+        if (uri.path == '/user/create') return MaterialPageRoute(builder: (context) => const CreateUserPage());
+        
+
+        // Project routes - RESTful style
+        if (uri.path == '/projects/create') {
+          return MaterialPageRoute(builder: (context) => const CreateProjectPage());
+        }
+
+        // Project detail: /projects/123
+        if (pathSegments.length == 2 && pathSegments[0] == 'projects') {
+          final projectId = int.tryParse(pathSegments[1]);
+          if (projectId != null) {
+            // Return project detail page (you'll need to create this)
+            // return MaterialPageRoute(builder: (_) => ProjectDetailPage(projectId: projectId));
+          }
+        }
+
+        if (uri.path == '/module/create') {
+          final args = settings.arguments;
           if (args is Map && args['projectId'] is int) {
-            return CreateModulePage(
-              projectId: args['projectId'] as int,
-              parentModuleId: args['parentModuleId'] as int?,
-              projectMembers: List<Map<String, dynamic>>.from(args['projectMembers'] ?? []),
-            );
-          } else {
-            return const Scaffold(
-              body: Center(child: Text("Lỗi: thiếu hoặc sai projectId")),
+            return MaterialPageRoute(
+              builder: (_) => CreateModulePage(
+                projectId: args['projectId'],
+                parentModuleId: args['parentModuleId'] as int?,
+                projectMembers: List<Map<String, dynamic>>.from(args['projectMembers'] ?? []),
+              ),
             );
           }
-        },
+        }
 
+        if (uri.path == '/module-detail') {
+          final idParam = uri.queryParameters['id'];
+          final moduleId = int.tryParse(idParam ?? '');
+          if (moduleId != null) {
+            return MaterialPageRoute(
+              builder: (_) => ModuleDetailPage.withId(moduleId: moduleId),
+            );
+          } 
+        }
 
-        '/module-detail': (context) {
-          final args = ModalRoute.of(context)?.settings.arguments;
-          if (args is int) {
-            return ModuleDetailPage.withId(moduleId: args);
-          } else {
-            return const Scaffold(
-              body: Center(child: Text("Lỗi: moduleId không hợp lệ")),
+        
+
+        // Task routes - RESTful style
+        if (uri.path == '/tasks') {
+          return MaterialPageRoute(builder: (context) => const TaskPage());
+        }
+
+        // Module create for specific project: /projects/123/modules/create
+        if (pathSegments.length == 4 && 
+            pathSegments[0] == 'projects' && 
+            pathSegments[2] == 'modules' && 
+            pathSegments[3] == 'create') {
+          final projectId = int.tryParse(pathSegments[1]);
+          if (projectId != null) {
+            final args = settings.arguments;
+            return MaterialPageRoute(
+              builder: (_) => CreateModulePage(
+                projectId: projectId,
+                parentModuleId: args is Map ? args['parentModuleId'] as int? : null,
+                projectMembers: args is Map ? List<Map<String, dynamic>>.from(args['projectMembers'] ?? []) : [],
+              ),
             );
           }
-        },
+        }
 
-        //Tasks
-        '/task': (context) => const TaskPage(),
+        // Fallback to home if no route matches
+        return MaterialPageRoute(builder: (context) => const HomeScreen());
       },
     );
   }

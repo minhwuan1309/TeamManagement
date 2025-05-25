@@ -24,6 +24,7 @@ dependencies:
   file_saver: ^0.2.14
   graphview: ^1.2.0
   flutter_speed_dial: ^7.0.0
+  flutter_typeahead: ^4.8.0
 
 
 dev_dependencies:

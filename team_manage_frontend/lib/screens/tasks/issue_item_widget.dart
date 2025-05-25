@@ -45,18 +45,13 @@ class _IssueItemWidgetState extends State<IssueItemWidget> {
     }
   }
 
-  Future<void> downloadFile(
-    BuildContext context,
-    String url,
-    String filename,
-  ) async {
+  Future<void> downloadFile(BuildContext context, String url, String filename) async {
     try {
       if (kIsWeb) {
         final anchor = html.AnchorElement(href: url)
           ..setAttribute("download", filename)
           ..click();
       } else {
-        // Tải file về dạng bytes
         final response = await Dio().get(
           url,
           options: Options(responseType: ResponseType.bytes),
@@ -65,11 +60,10 @@ class _IssueItemWidgetState extends State<IssueItemWidget> {
             ? Uint8List.fromList(response.data)
             : response.data as Uint8List;
 
-        // Lưu file vào thư mục public (Download) sử dụng file_saver
         final res = await FileSaver.instance.saveFile(
           name: filename,
           bytes: bytes,
-          ext: filename.split('.').last, // lấy đuôi file
+          ext: filename.split('.').last, 
           mimeType: MimeType.other,
         );
 
@@ -432,12 +426,13 @@ class _IssueItemWidgetState extends State<IssueItemWidget> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              issue['createUser']?['fullName'] ?? 'Không xác định',
+                              issue['CreatedByName'] ?? issue['createdByName'] ?? 'Không xác định',
                               style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
+                            
                           ],
                         ),
                       ),
@@ -456,7 +451,7 @@ class _IssueItemWidgetState extends State<IssueItemWidget> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              formatDate(issue['createDate']),
+                              formatDate(issue['createdAt']),
                               style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
@@ -519,8 +514,8 @@ class _IssueItemWidgetState extends State<IssueItemWidget> {
                     ),
                     const SizedBox(height: 12),
                     ...issueFiles.map((fileItem) {
-                      final fileName = fileItem['fileName'] ?? 'file.txt';
-                      final fileUrl = '$baseUrl${fileItem['filePath']}';
+                      final fileName = fileItem['name'] ?? 'Không rõ tên';
+                      final fileUrl = '$baseUrl${fileItem['url']}';
                       
                       // Determine icon based on file extension
                       IconData fileIcon;
@@ -620,7 +615,6 @@ class _IssueItemWidgetState extends State<IssueItemWidget> {
                     }).toList(),
                   ],
                   
-                  // Upload file button
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
                     onPressed: () => _uploadFile(issue['id']),
@@ -648,7 +642,6 @@ class _IssueItemWidgetState extends State<IssueItemWidget> {
     );
   }
   
-  // Helper function to format file size
   String _formatFileSize(int? bytes) {
     if (bytes == null) return 'Unknown size';
     
@@ -695,7 +688,6 @@ class _IssueItemWidgetState extends State<IssueItemWidget> {
             ));
           }
         } else {
-          // Mobile/Desktop platform
           final filePath = file.path;
           if (filePath != null) {
             formData.files.add(MapEntry(
@@ -708,10 +700,8 @@ class _IssueItemWidgetState extends State<IssueItemWidget> {
           }
         }
         
-        // Add issue ID to form data
         formData.fields.add(MapEntry('IssueId', issueId.toString()));
         
-        // Upload using Dio
         final dio = Dio();
         final response = await dio.post(
           '$baseUrl/issue/add-file',
@@ -722,7 +712,7 @@ class _IssueItemWidgetState extends State<IssueItemWidget> {
         );
         
         if (response.statusCode == 200) {
-          widget.onStatusChanged(); // Refresh to show new files
+          widget.onStatusChanged();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Đã upload thành công: $fileName'),
@@ -836,7 +826,7 @@ class _CreateIssueDialogState extends State<CreateIssueDialog> {
 
       // Submit request
       final response = await dio.post(
-        '$baseUrl/issue/create',
+        '$baseUrl/issue/task/create/${widget.taskId}',
         data: formData,
         options: Options(
           headers: {'Authorization': 'Bearer $token'},
@@ -961,7 +951,6 @@ class _CreateIssueDialogState extends State<CreateIssueDialog> {
                   ),
                   const SizedBox(height: 16),
                   
-                  // Description field
                   const Text(
                     'Mô tả',
                     style: TextStyle(
@@ -1015,7 +1004,6 @@ class _CreateIssueDialogState extends State<CreateIssueDialog> {
                   ),
                   const SizedBox(height: 12),
                   
-                  // Selected files list
                   if (_selectedFiles.isNotEmpty) ...[
                     Container(
                       padding: const EdgeInsets.all(12),

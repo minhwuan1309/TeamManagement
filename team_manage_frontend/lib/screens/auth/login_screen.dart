@@ -126,7 +126,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               keyboardType: TextInputType.emailAddress,
                             ),
                             const SizedBox(height: 16),
-                            TextField(
+                            TextFormField(
                               controller: passwordController,
                               obscureText: !isPasswordVisible,
                               decoration: InputDecoration(
@@ -155,7 +155,12 @@ class _LoginScreenState extends State<LoginScreen> {
                                 filled: true,
                                 fillColor: Colors.grey.shade50,
                               ),
+                              textInputAction: TextInputAction.done,
+                              onFieldSubmitted: (_) {
+                                if (!isLoading) handleLogin(); // Gọi hàm đăng nhập khi nhấn Enter
+                              },
                             ),
+
                             
                             const SizedBox(height: 8),
                             Align(

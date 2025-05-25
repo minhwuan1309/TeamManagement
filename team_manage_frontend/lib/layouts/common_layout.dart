@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:team_manage_frontend/api_service.dart';
 import 'package:team_manage_frontend/screens/modules/module_tree_widget.dart';
+import 'package:team_manage_frontend/screens/searchBar.dart';
 
 class CommonLayout extends StatefulWidget {
   final Widget child;
@@ -29,11 +30,13 @@ class _CommonLayoutState extends State<CommonLayout> {
   bool isLoading = false;
   bool _refreshInProgress = false;
   bool showDeletedOnly = false;
-  bool _isSidebarVisible = true;
+  static bool _isSidebarVisible = true;
 
   List<dynamic> projects = [];
   int? selectedProjectId;
   List<Map<String, dynamic>> projectMembers = [];
+  final Map<int, Map<String, dynamic>> moduleCache = {};
+
 
   Map<String, dynamic>? treeModulesData;
   final TextEditingController _searchController = TextEditingController();
@@ -133,6 +136,7 @@ class _CommonLayoutState extends State<CommonLayout> {
         List modulesList = [];
         setState(() {
           treeModulesData = decoded;
+          moduleCache[projectId] = decoded;
           isLoading = false;
         });
 
@@ -163,6 +167,13 @@ class _CommonLayoutState extends State<CommonLayout> {
       _refreshInProgress = false;
     }
   }
+
+  void setDataFromCache(int projectId) {
+    if (moduleCache.containsKey(projectId)) {
+      treeModulesData = moduleCache[projectId]; 
+    }
+  }
+
 
 
   List<Map<String, dynamic>> buildModuleTreeFromFlatList(List<dynamic> flatModules) {
@@ -195,7 +206,7 @@ class _CommonLayoutState extends State<CommonLayout> {
 
   Widget _buildDrawerContent(BuildContext context) {
     return Container(
-      width: MediaQuery.of(context).size.width / 4, // Chiều rộng bằng 1/4 màn hình
+      width: MediaQuery.of(context).size.width / 4, 
       child: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
@@ -303,24 +314,49 @@ class _CommonLayoutState extends State<CommonLayout> {
                 children: [
                   const Text("Chọn Dự án"),
                   const SizedBox(height: 8),
-                  DropdownButtonHideUnderline(
-                    child: DropdownButton<int>(
-                      value: selectedProjectId,
-                      isExpanded: true,
-                      items: projects.map((p) {
-                        return DropdownMenuItem<int>(
-                          value: p['id'],
-                          child: Text(p['name']),
-                        );
-                      }).toList(),
-                      onChanged: (int? newProjectId) {
-                        if (newProjectId == null) return;
-                        setState(() {
-                          selectedProjectId = newProjectId;
-                        });
-                        fetchTreeModules(newProjectId);
-                      },
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<int>(
+                            value: selectedProjectId,
+                            isExpanded: true,
+                            items: projects.map((p) {
+                              return DropdownMenuItem<int>(
+                                value: p['id'],
+                                child: Text(p['name']),
+                              );
+                            }).toList(),
+                            onChanged: (int? newProjectId) {
+                              if (newProjectId == null) return;
+                              setState(() {
+                                selectedProjectId = newProjectId;
+                                isLoading = true;
+                              });
+                              fetchTreeModules(newProjectId);
+                              fetchProjectMembers(newProjectId);
+                            },
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                        MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: InkWell(
+                            onTap: () => Navigator.pushReplacementNamed(context, '/project/create'),
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: Colors.green.shade50,
+                                border: Border.all(color: Colors.green.shade300),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(Icons.add, color: Colors.green),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ],
               ),
@@ -445,23 +481,26 @@ class _CommonLayoutState extends State<CommonLayout> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Bỏ AppBar mặc định
       appBar: null,
       drawer: _isSidebarVisible ? null : _buildDrawerContent(context),
       body: Row(
         children: [
-          // Hiển thị sidebar nếu _isSidebarVisible = true
           if (_isSidebarVisible) _buildDrawerContent(context),
-          
-          // Hiển thị nội dung chính với header mới
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header với title và nút toggle sidebar
                 _buildContentHeader(),
-                
-                // Nội dung chính
+
+                // 🧠 Thêm thanh tìm kiếm ngay dưới header
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: SizedBox(
+                    height: 48,
+                    child: GlobalSearchBar(),
+                  ),
+                ),
+
                 Expanded(
                   child: isLoading
                       ? const Center(child: CircularProgressIndicator())

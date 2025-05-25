@@ -28,7 +28,24 @@ namespace TeamManage.Controllers
                         .Where(i => i.TaskItemId == taskId && !i.IsDeleted)
                         .ToListAsync();
 
-            return Ok(issues);
+            var result = issues.Select(issue => new IssueDetailDTO
+            {
+                Id = issue.Id,
+                Title = issue.Title,
+                Description = issue.Description,
+                Status = issue.Status,
+                CreatedAt = issue.CreatedAt,
+                UpdatedAt = issue.UpdatedAt,
+                CreatedByName = issue.CreatedBy?.FullName,
+                Files = issue.Files.Select(f => new IssueFileDTO
+                {
+                    Url = f.Url,
+                    Name = f.Name,
+                    FileType = f.FileType
+                }).ToList()
+            });
+
+            return Ok(result);
         }
 
         // ====================== Get Issue By Id ======================
@@ -41,8 +58,27 @@ namespace TeamManage.Controllers
                 .FirstOrDefaultAsync(i => i.Id == id && !i.IsDeleted);
             if (issue == null)
                 return NotFound("Không tìm thấy issue.");
-            return Ok(issue);
+
+            var result = new IssueDetailDTO
+            {
+                Id = issue.Id,
+                Title = issue.Title,
+                Description = issue.Description,
+                Status = issue.Status,
+                CreatedAt = issue.CreatedAt,
+                UpdatedAt = issue.UpdatedAt,
+                CreatedByName = issue.CreatedBy?.FullName,
+                Files = issue.Files.Select(f => new IssueFileDTO
+                {
+                    Url = f.Url,
+                    Name = f.Name,
+                    FileType = f.FileType
+                }).ToList()
+            };
+            
+            return Ok(result);
         }
+        
 
         // ====================== Create Issue ======================
         [HttpPost("task/create/{taskId}")]
@@ -53,10 +89,10 @@ namespace TeamManage.Controllers
                 return NotFound("Không tìm thấy task.");
 
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            
-            if(string.IsNullOrWhiteSpace(title))
+
+            if (string.IsNullOrWhiteSpace(title))
                 return BadRequest("Tiêu đề không được để trống!");
-            if(string.IsNullOrWhiteSpace(description))
+            if (string.IsNullOrWhiteSpace(description))
                 return BadRequest("Mô tả không được để trống!");
 
             var issue = new Issue
@@ -70,12 +106,12 @@ namespace TeamManage.Controllers
                 CreatedAt = DateTime.Now,
                 UpdatedAt = DateTime.Now
             };
-            if(files != null && files.Count > 0)
+            if (files != null && files.Count > 0)
             {
-                foreach(var file in files)
+                foreach (var file in files)
                 {
                     var uploadResult = await cloudinary.UploadFileAsync(file);
-                    if(uploadResult != null)
+                    if (uploadResult != null)
                     {
                         issue.Files.Add(new IssueFile
                         {
@@ -112,7 +148,7 @@ namespace TeamManage.Controllers
             return Ok(new { message = "Đã cập nhật issue", issue });
         }
 
-        [HttpDelete("delete/{id}")] 
+        [HttpDelete("delete/{id}")]
         public async Task<IActionResult> DeleteIssue(int id)
         {
             var issue = await _context.Issues.FirstOrDefaultAsync(i => i.Id == id && !i.IsDeleted);

@@ -41,7 +41,6 @@ class _CreateModulePageState extends State<CreateModulePage> {
     parentModuleId = widget.parentModuleId;
     projectMembers = widget.projectMembers;
     isLoading = false;
-    print(projectMembers);
   }
 
 
