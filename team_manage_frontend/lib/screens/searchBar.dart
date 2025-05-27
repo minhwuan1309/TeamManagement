@@ -211,8 +211,6 @@ class GlobalSearchBar extends StatelessWidget {
 
   IconData _getIcon(String? type) {
     switch (type?.toLowerCase()) {
-      case 'project':
-        return Icons.folder;
       case 'module':
         return Icons.view_module;
       case 'task':
@@ -228,8 +226,6 @@ class GlobalSearchBar extends StatelessWidget {
 
   Color _getIconColor(String? type) {
     switch (type?.toLowerCase()) {
-      case 'project':
-        return Colors.blue;
       case 'module':
         return Colors.green;
       case 'task':
@@ -245,8 +241,6 @@ class GlobalSearchBar extends StatelessWidget {
 
   Color _getTypeColor(String? type) {
     switch (type?.toLowerCase()) {
-      case 'project':
-        return Colors.blue;
       case 'module':
         return Colors.green;
       case 'task':
@@ -262,8 +256,6 @@ class GlobalSearchBar extends StatelessWidget {
 
   String _getTypeLabel(String? type) {
     switch (type?.toLowerCase()) {
-      case 'project':
-        return 'Dự án';
       case 'module':
         return 'Module';
       case 'task':
@@ -280,11 +272,44 @@ class GlobalSearchBar extends StatelessWidget {
   void _navigateToDetail(BuildContext context, Map<String, dynamic> suggestion) {
     final type = suggestion['type']?.toString().toLowerCase();
     final id = suggestion['id'];
-    
-    if (type != null && id != null) {
-      // Đóng bàn phím trước khi navigate
-      FocusScope.of(context).unfocus();
-      Navigator.pushNamed(context, '/$type/$id');
+    if (type == null || id == null) return;
+
+    FocusScope.of(context).unfocus(); // Đóng bàn phím
+
+    if (type == 'module') {
+      Navigator.pushNamed(context, '/module-detail?id=$id');
+    } else if (type == 'task') {
+      Navigator.pushNamed(context, '/task-detail?id=$id');
+    } else if (type == 'issue') {
+      // 🔁 Đối với issue, cần chuyển đến trang task chứa nó
+      _fetchTaskIdOfIssue(id).then((taskId) {
+        if (taskId != null) {
+          Navigator.pushNamed(context, '/task-detail?id=$taskId');
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Không tìm thấy task chứa issue này')),
+          );
+        }
+      });
+    } else if (type == 'user') {
+      Navigator.pushNamed(context, '/user-detail?id=$id');
     }
+  }
+
+  Future<int?> _fetchTaskIdOfIssue(int issueId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    final headers = {'Authorization': 'Bearer $token'};
+
+    final res = await http.get(
+      Uri.parse('$baseUrl/issue/$issueId'),
+      headers: headers,
+    );
+
+    if (res.statusCode == 200) {
+      final issue = jsonDecode(res.body);
+      return issue['taskItemId']; // 👈 key đúng theo Issue.cs
+    }
+    return null;
   }
 }

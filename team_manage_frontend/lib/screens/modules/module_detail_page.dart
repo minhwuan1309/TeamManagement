@@ -63,8 +63,6 @@ class _ModuleDetailPageState extends State<ModuleDetailPage> {
     }
   }
 
-
-
   Future<void> fetchModule(int moduleId) async {
     setState(() => isLoading = true);
     final prefs = await SharedPreferences.getInstance();
@@ -708,11 +706,7 @@ class _ModuleDetailPageState extends State<ModuleDetailPage> {
                             children: [
                               Row(
                                 children: [
-                                  Icon(
-                                    Icons.dashboard_rounded,
-                                    color: Colors.blue,
-                                    size: 24,
-                                  ),
+                                  Icon(Icons.dashboard_rounded, color: Colors.blue, size: 24),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Text(
@@ -738,56 +732,40 @@ class _ModuleDetailPageState extends State<ModuleDetailPage> {
                                   ),
                                   const SizedBox(width: 8),
                                   Container(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 5,
-                                    ),
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                                     decoration: BoxDecoration(
-                                      color: _getStatusColor(
-                                        currentModule?['status'],
-                                      ).withOpacity(0.1),
+                                      color: _getStatusColor(currentModule?['status']).withOpacity(0.1),
                                       borderRadius: BorderRadius.circular(15),
                                       border: Border.all(
-                                        color: _getStatusColor(
-                                          currentModule?['status'],
-                                        ),
+                                        color: _getStatusColor(currentModule?['status']),
                                       ),
                                     ),
                                     child: DropdownButton<int>(
-                                      value:
-                                          currentModule?['status'] is int
-                                              ? currentModule!['status']
-                                              : _getStatusValue(
-                                                _getStatusText(
-                                                  currentModule?['status'],
-                                                ),
-                                              ),
+                                      value: currentModule?['status'] is int
+                                          ? currentModule!['status']
+                                          : _getStatusValue(
+                                              _getStatusText(currentModule?['status']),
+                                            ),
                                       items: [
                                         DropdownMenuItem(
                                           value: 0,
                                           child: Text(
                                             'Chưa bắt đầu',
-                                            style: TextStyle(
-                                              color: Colors.grey[700],
-                                            ),
+                                            style: TextStyle(color: Colors.grey[700]),
                                           ),
                                         ),
                                         DropdownMenuItem(
                                           value: 1,
                                           child: Text(
                                             'Đang tiến hành',
-                                            style: TextStyle(
-                                              color: Colors.blue[700],
-                                            ),
+                                            style: TextStyle(color: Colors.blue[700]),
                                           ),
                                         ),
                                         DropdownMenuItem(
                                           value: 2,
                                           child: Text(
                                             'Hoàn thành',
-                                            style: TextStyle(
-                                              color: Colors.green[700],
-                                            ),
+                                            style: TextStyle(color: Colors.green[700]),
                                           ),
                                         ),
                                       ],
@@ -799,15 +777,14 @@ class _ModuleDetailPageState extends State<ModuleDetailPage> {
                                       underline: Container(height: 0),
                                       icon: Icon(
                                         Icons.arrow_drop_down,
-                                        color: _getStatusColor(
-                                          currentModule?['status'],
-                                        ),
+                                        color: _getStatusColor(currentModule?['status']),
                                       ),
                                       dropdownColor: Colors.white,
                                     ),
                                   ),
                                 ],
                               ),
+
                               const SizedBox(height: 16),
                               Row(
                                 children: [
@@ -1013,27 +990,13 @@ class _ModuleDetailPageState extends State<ModuleDetailPage> {
                                           ),
                                           elevation: 0,
                                           shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              10,
-                                            ),
-                                            side: BorderSide(
-                                              color: Colors.grey.shade200,
-                                            ),
+                                            borderRadius: BorderRadius.circular(10),
+                                            side: BorderSide(color: Colors.grey.shade200),
                                           ),
                                           child: InkWell(
-                                            borderRadius: BorderRadius.circular(
-                                              10,
-                                            ),
+                                            borderRadius: BorderRadius.circular(10),
                                             onTap: () {
-                                              Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder:
-                                                      (_) => TaskDetailPage(
-                                                        taskId: task['id'],
-                                                      ),
-                                                ),
-                                              ).then(
+                                              Navigator.push(context,MaterialPageRoute( builder: (_) => TaskDetailPage(taskId: task['id']))).then(
                                                 (result) => {
                                                   if (result == true)
                                                     _refreshModuleData(),
@@ -1045,20 +1008,15 @@ class _ModuleDetailPageState extends State<ModuleDetailPage> {
                                                 12.0,
                                               ),
                                               child: Row(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
+                                                crossAxisAlignment:CrossAxisAlignment.start,
                                                 children: [
                                                   Container(
                                                     width: 40,
                                                     height: 40,
                                                     decoration: BoxDecoration(
-                                                      color: _getStatusColor(
-                                                        status,
-                                                      ).withOpacity(0.1),
+                                                      color: _getStatusColor( status).withOpacity(0.1),
                                                       borderRadius:
-                                                          BorderRadius.circular(
-                                                            8,
-                                                          ),
+                                                          BorderRadius.circular(8),
                                                     ),
                                                     child: Center(
                                                       child: Icon(
@@ -1068,9 +1026,7 @@ class _ModuleDetailPageState extends State<ModuleDetailPage> {
                                                             ? Icons.pending
                                                             : Icons
                                                                 .circle_outlined,
-                                                        color: _getStatusColor(
-                                                          status,
-                                                        ),
+                                                        color: _getStatusColor(status),
                                                         size: 24,
                                                       ),
                                                     ),
@@ -1078,9 +1034,7 @@ class _ModuleDetailPageState extends State<ModuleDetailPage> {
                                                   SizedBox(width: 12),
                                                   Expanded(
                                                     child: Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .start,
+                                                      crossAxisAlignment: CrossAxisAlignment.start,
                                                       children: [
                                                         Text(
                                                           title,
@@ -1089,40 +1043,23 @@ class _ModuleDetailPageState extends State<ModuleDetailPage> {
                                                             fontSize: 16
                                                             ),
                                                         ),
-                                                        if (task['currentStepName'] !=
-                                                                null &&
-                                                            (task['currentStepName']
-                                                                    as String)
-                                                                .isNotEmpty)
+                                                        if (task['currentStepName'] != null &&(task['currentStepName']as String).isNotEmpty)
                                                           Padding(
-                                                            padding:
-                                                                const EdgeInsets.only(
-                                                                  top: 4.0,
-                                                                ),
+                                                            padding: const EdgeInsets.only(top: 4.0),
                                                             child: Row(
                                                               children: [
                                                                 Icon(
-                                                                  Icons
-                                                                      .alt_route,
+                                                                  Icons.alt_route,
                                                                   size: 16,
-                                                                  color:
-                                                                      Colors
-                                                                          .purple,
+                                                                  color: Colors.purple
                                                                 ),
-                                                                const SizedBox(
-                                                                  width: 4,
-                                                                ),
+                                                                const SizedBox(width: 4),
                                                                 Text(
                                                                   'Bước hiện tại: ${task['currentStepName']}',
                                                                   style: const TextStyle(
-                                                                    fontSize:
-                                                                        13,
-                                                                    color:
-                                                                        Colors
-                                                                            .purple,
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .w500,
+                                                                    fontSize:13,
+                                                                    color: Colors .purple,
+                                                                    fontWeight: FontWeight.w500,
                                                                   ),
                                                                 ),
                                                               ],
@@ -1137,39 +1074,21 @@ class _ModuleDetailPageState extends State<ModuleDetailPage> {
                                                             Container(
                                                               padding:
                                                                   EdgeInsets.symmetric(
-                                                                    horizontal:
-                                                                        8,
+                                                                    horizontal:8,
                                                                     vertical: 3,
                                                                   ),
                                                               decoration: BoxDecoration(
-                                                                color:
-                                                                    _getStatusColor(
-                                                                      status,
-                                                                    ).withOpacity(
-                                                                      0.1,
-                                                                    ),
-                                                                borderRadius:
-                                                                    BorderRadius.circular(
-                                                                      12,
-                                                                    ),
+                                                                color: _getStatusColor( status).withOpacity(0.1),
+                                                                borderRadius:BorderRadius.circular(12),
                                                                 border: Border.all(
-                                                                  color: _getStatusColor(
-                                                                    status,
-                                                                  ).withOpacity(
-                                                                    0.5,
-                                                                  ),
+                                                                  color: _getStatusColor(status).withOpacity(0.5),
                                                                   width: 1,
                                                                 ),
                                                               ),
                                                               child: Text(
-                                                                _getStatusText(
-                                                                  status,
-                                                                ),
+                                                                _getStatusText(status),
                                                                 style: TextStyle(
-                                                                  color:
-                                                                      _getStatusColor(
-                                                                        status,
-                                                                      ),
+                                                                  color: _getStatusColor( status),
                                                                   fontSize: 12,
                                                                   fontWeight: FontWeight.w500,
                                                                 ),
@@ -1192,29 +1111,19 @@ class _ModuleDetailPageState extends State<ModuleDetailPage> {
                                                                     ),
                                                               ),
                                                               child: Row(
-                                                                mainAxisSize:
-                                                                    MainAxisSize
-                                                                        .min,
+                                                                mainAxisSize: MainAxisSize.min,
                                                                 children: [
                                                                   Icon(
-                                                                    Icons
-                                                                        .calendar_today,
+                                                                    Icons.calendar_today,
                                                                     size: 12,
-                                                                    color:
-                                                                        Colors
-                                                                            .grey[600],
+                                                                    color: Colors.grey[600],
                                                                   ),
-                                                                  SizedBox(
-                                                                    width: 4,
-                                                                  ),
+                                                                  SizedBox( width: 4),
                                                                   Text(
                                                                     '$startDate - $endDate',
                                                                     style: TextStyle(
-                                                                      fontSize:
-                                                                          12,
-                                                                      color:
-                                                                          Colors
-                                                                              .grey[600],
+                                                                      fontSize:12,
+                                                                      color:Colors.grey[600],
                                                                     ),
                                                                   ),
                                                                 ],
@@ -1233,33 +1142,23 @@ class _ModuleDetailPageState extends State<ModuleDetailPage> {
                                                                         .blue[50],
                                                                 borderRadius:
                                                                     BorderRadius.circular(
-                                                                      12,
+                                                                      12
                                                                     ),
                                                               ),
                                                               child: Row(
-                                                                mainAxisSize:
-                                                                    MainAxisSize
-                                                                        .min,
+                                                                mainAxisSize:MainAxisSize.min,
                                                                 children: [
                                                                   Icon(
-                                                                    Icons
-                                                                        .person_outline,
+                                                                    Icons.person_outline,
                                                                     size: 12,
-                                                                    color:
-                                                                        Colors
-                                                                            .blue[600],
+                                                                    color: Colors.blue[600],
                                                                   ),
-                                                                  SizedBox(
-                                                                    width: 4,
-                                                                  ),
+                                                                  SizedBox(width: 4),
                                                                   Text(
                                                                     assignedUserName,
                                                                     style: TextStyle(
-                                                                      fontSize:
-                                                                          12,
-                                                                      color:
-                                                                          Colors
-                                                                              .blue[600],
+                                                                      fontSize: 12,
+                                                                      color: Colors.blue[600],
                                                                     ),
                                                                   ),
                                                                 ],

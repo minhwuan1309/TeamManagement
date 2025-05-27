@@ -7,8 +7,7 @@ import 'package:team_manage_frontend/screens/auth/verify_email_screen.dart';
 import 'package:team_manage_frontend/screens/modules/create_module_page.dart';
 import 'package:team_manage_frontend/screens/modules/module_detail_page.dart';
 import 'package:team_manage_frontend/screens/project/create_project_page.dart';
-import 'package:team_manage_frontend/screens/tasks/create_task_page.dart';
-import 'package:team_manage_frontend/screens/tasks/task_page.dart';
+import 'package:team_manage_frontend/screens/tasks/task_detail_page.dart';
 import 'screens/home_screen.dart';
 import 'screens/user/create_user_page.dart';
 import 'screens/user/profile_screen.dart';
@@ -52,14 +51,6 @@ class MyApp extends StatelessWidget {
           return MaterialPageRoute(builder: (context) => const CreateProjectPage());
         }
 
-        // Project detail: /projects/123
-        if (pathSegments.length == 2 && pathSegments[0] == 'projects') {
-          final projectId = int.tryParse(pathSegments[1]);
-          if (projectId != null) {
-            // Return project detail page (you'll need to create this)
-            // return MaterialPageRoute(builder: (_) => ProjectDetailPage(projectId: projectId));
-          }
-        }
 
         if (uri.path == '/module/create') {
           final args = settings.arguments;
@@ -84,14 +75,17 @@ class MyApp extends StatelessWidget {
           } 
         }
 
-        
-
-        // Task routes - RESTful style
-        if (uri.path == '/tasks') {
-          return MaterialPageRoute(builder: (context) => const TaskPage());
+        //Task
+        if (uri.path == '/task-detail') {
+          final id = int.tryParse(uri.queryParameters['id'] ?? '');
+          if (id != null) {
+            return MaterialPageRoute(
+              builder: (_) => TaskDetailPage(taskId: id),
+            );
+          }
         }
 
-        // Module create for specific project: /projects/123/modules/create
+
         if (pathSegments.length == 4 && 
             pathSegments[0] == 'projects' && 
             pathSegments[2] == 'modules' && 

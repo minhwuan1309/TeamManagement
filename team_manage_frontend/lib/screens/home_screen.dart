@@ -1,9 +1,12 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:team_manage_frontend/api_service.dart';
 import 'package:team_manage_frontend/layouts/common_layout.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:team_manage_frontend/screens/tasks/chart_widget.dart';
+import 'package:team_manage_frontend/utils/env.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -14,14 +17,19 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   String userName = '';
-  Map<String, dynamic>? taskStats;
-  Map<String, dynamic>? issueStats;
+  Map<DateTime, Map<String, int>> issueTrend = {};
+  Map<DateTime, Map<String, int>> taskTrend = {};
+
+
+  final String metabaseUrl = metabasePublicUrl;
+
 
   @override
   void initState() {
     super.initState();
     loadUserAndStats();
   }
+
   Future<Map<String, dynamic>> fetchDashboardTaskAll() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
@@ -55,91 +63,107 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> loadUserAndStats() async {
-    final profile = await ApiService.getProfile();
-    final task = await fetchDashboardTaskAll();
-    final issue = await fetchDashboardIssueAll();
-
-    setState(() {
-      userName = profile?['fullName'] ?? '';
-      taskStats = task['data'];
-      issueStats = issue['data'];
-    });
-  }
-
-
-  Widget _buildStatCard(String title, IconData icon, Color color, int value) {
-    return Expanded(
-      child: Card(
-        elevation: 3,
-        color: color.withOpacity(0.1),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              Icon(icon, color: color),
-              const SizedBox(height: 8),
-              Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-              const SizedBox(height: 4),
-              Text(
-                value.toString(),
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDashboardSection(String title, Map<String, dynamic>? data, Color color, IconData icon) {
-    if (data == null) {
-      return const Center(child: CircularProgressIndicator());
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    if (token == null || token.isEmpty) {
+      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+      return;
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 24),
-        Text(
-          title,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            _buildStatCard("Tổng", icon, color, data["total${title}"]),
-            const SizedBox(width: 12),
-            _buildStatCard("Chưa bắt đầu", icon, color, data["total${title}NotStarted"]),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            _buildStatCard("Đang thực hiện", icon, color, data["total${title}InProgress"]),
-            const SizedBox(width: 12),
-            _buildStatCard("Hoàn thành", icon, color, data["total${title}Completed"]),
-          ],
-        ),
-      ],
-    );
+    try {
+      final profile = await ApiService.getProfile();
+      final taskData = await fetchIssueTrend();
+      final issueData = await fetchTaskTrend();
+
+      setState(() {
+        userName = profile?['fullName'] ?? '';
+        taskTrend = taskData;
+        issueTrend = issueData;
+      });
+    } catch (e) {
+      if (mounted) {
+        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Hãy đăng nhập để tiếp tục!')),
+        );
+      }
+    }
   }
+
+  Map<DateTime, Map<String, int>> parseTimeSeriesData(dynamic json) {
+    final rawList = json['\$values'] as List<dynamic>;
+
+    final result = <DateTime, Map<String, int>>{};
+
+    for (var item in rawList) {
+      final date = DateTime.parse(item['date']);
+      result[date] = {
+        "Not Started": item['notStarted'],
+        "In Progress": item['inProgress'],
+        "Completed": item['completed'],
+      };
+    }
+
+    return result;
+  }
+
+  Future<Map<DateTime, Map<String, int>>> fetchIssueTrend() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    final response = await http.get(
+      Uri.parse('$baseUrl/dashboard/issue/trend'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+
+    if (response.statusCode == 200) {
+      final jsonData = jsonDecode(response.body);
+      return parseTimeSeriesData(jsonData);
+    } else {
+      throw Exception('Failed to load issue trend');
+    }
+  }
+
+  Future<Map<DateTime, Map<String, int>>> fetchTaskTrend() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    final response = await http.get(
+      Uri.parse('$baseUrl/dashboard/task/trend'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+
+    if (response.statusCode == 200) {
+      final jsonData = jsonDecode(response.body);
+      return parseTimeSeriesData(jsonData);
+    } else {
+      throw Exception('Failed to load task trend');
+    }
+  }
+
+
+
+
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isMobile = screenWidth < 600;
-
     return CommonLayout(
       title: 'SThink',
-
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const SizedBox(height: 12),
+            MultiLineChartWidget(
+              title: "Issue",
+              timeSeriesData: issueTrend,
+            ),
             const SizedBox(height: 16),
-            _buildDashboardSection("Task", taskStats, Colors.blue, Icons.task),
-            _buildDashboardSection("Issue", issueStats, Colors.red, Icons.bug_report),
+            MultiLineChartWidget(
+              title: "Task",
+              timeSeriesData: taskTrend,
+            ),
           ],
         ),
       ),

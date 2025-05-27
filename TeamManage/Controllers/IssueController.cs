@@ -31,6 +31,7 @@ namespace TeamManage.Controllers
             var result = issues.Select(issue => new IssueDetailDTO
             {
                 Id = issue.Id,
+                TaskItemId = issue.TaskItemId,
                 Title = issue.Title,
                 Description = issue.Description,
                 Status = issue.Status,
@@ -63,6 +64,7 @@ namespace TeamManage.Controllers
             {
                 Id = issue.Id,
                 Title = issue.Title,
+                TaskItemId = issue.TaskItemId,
                 Description = issue.Description,
                 Status = issue.Status,
                 CreatedAt = issue.CreatedAt,

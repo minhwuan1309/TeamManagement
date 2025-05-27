@@ -20,9 +20,6 @@ namespace TeamManage.Controllers
 
             query = StringHelper.RemoveDiacritics(query);
             // Lấy data trước
-            var allProjects = await _context.Projects
-                .Where(p => !p.IsDeleted)
-                .ToListAsync();
 
             var allModules = await _context.Modules
                 .Where(m => !m.IsDeleted)
@@ -39,21 +36,8 @@ namespace TeamManage.Controllers
                 .Include(i => i.TaskItem).Where(i => !i.TaskItem.IsDeleted)
                 .ToListAsync();
 
-            var allUsers = await _context.Users
-                .Where(u => !u.IsDeleted)
-                .ToListAsync();
-
 
             //So sánh ký tự
-            var project = allProjects
-                .Where(p => StringHelper.RemoveDiacritics(p.Name).Contains(query))
-                .Select(p => new
-                {
-                    type = "project",
-                    id = p.Id,
-                    title = p.Name,
-                    description = p.Description
-                }).ToList();
 
             var module = allModules
                 .Where(m => StringHelper.RemoveDiacritics(m.Name).Contains(query))
@@ -85,8 +69,8 @@ namespace TeamManage.Controllers
                     description = $"Task: {i.TaskItem.Title}"
                 }).ToList();
 
-            var result = project.Concat<object>(module)
-                                .Concat(task)
+
+            var result = module.Concat<object>(task)
                                 .Concat(issue)
                                 .ToList();
             return Ok(result);

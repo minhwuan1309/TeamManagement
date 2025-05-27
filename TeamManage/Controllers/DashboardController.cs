@@ -28,7 +28,7 @@ namespace TeamManage.Controllers
             var tasks = await _context.TaskItems
                 .Where(t => t.Module.ProjectId == projectId && !t.IsDeleted)
                 .ToListAsync();
-            
+
             if (tasks == null || !tasks.Any())
                 return NotFound($"Không tìm thấy task nào trong project có ID {projectId}.");
 
@@ -109,6 +109,48 @@ namespace TeamManage.Controllers
             return Ok(new { scope = "Issue of all-project", data = result });
         }
 
-        // Lấy
+        // Lấy theo timeline
+
+        [HttpGet("issue/trend")]
+        public async Task<IActionResult> GetIssueTrend()
+        {
+            var issues = await _context.Issues
+                .Where(i => !i.IsDeleted && i.CreatedAt != null)
+                .ToListAsync();
+
+            var trend = issues
+                .GroupBy(i => i.CreatedAt!.Date)
+                .OrderBy(g => g.Key)
+                .Select(g => new
+                {
+                    Date = g.Key.ToString("yyyy-MM-dd"),
+                    NotStarted = g.Count(i => i.Status == ProcessStatus.None),
+                    InProgress = g.Count(i => i.Status == ProcessStatus.InProgress),
+                    Completed = g.Count(i => i.Status == ProcessStatus.Done)
+                });
+
+            return Ok(trend);
+        }
+        
+        [HttpGet("task/trend")]
+        public async Task<IActionResult> GetTaskTrend()
+        {
+            var tasks = await _context.TaskItems
+                .Where(t => !t.IsDeleted && t.CreatedAt != null)
+                .ToListAsync();
+
+            var trend = tasks
+                .GroupBy(t => t.CreatedAt!.Date)
+                .OrderBy(g => g.Key)
+                .Select(g => new
+                {
+                    Date = g.Key.ToString("yyyy-MM-dd"),
+                    NotStarted = g.Count(t => t.Status == ProcessStatus.None),
+                    InProgress = g.Count(t => t.Status == ProcessStatus.InProgress),
+                    Completed = g.Count(t => t.Status == ProcessStatus.Done)
+                });
+
+            return Ok(trend);
+        }
     }
 }
