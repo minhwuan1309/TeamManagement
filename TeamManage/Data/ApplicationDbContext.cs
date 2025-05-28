@@ -15,6 +15,7 @@ namespace TeamManage.Data
         public DbSet<ProjectMember> ProjectMembers { get; set; }
         public DbSet<Module> Modules { get; set; }
         public DbSet<TaskItem> TaskItems { get; set; }
+        public DbSet<TaskComment> TaskComments { get; set; }
         public DbSet<Issue> Issues { get; set; }
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<ModuleMember> ModuleMembers { get; set; }

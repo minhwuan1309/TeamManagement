@@ -68,7 +68,11 @@ class _IssueItemWidgetState extends State<IssueItemWidget> {
         );
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Đã lưu vào: $res')),
+          SnackBar(
+            content: Text('Đã lưu vào: $res'),
+            backgroundColor: Colors.green[600],
+            behavior: SnackBarBehavior.floating,
+            ),
         );
       }
     } catch (e) {
@@ -107,18 +111,28 @@ class _IssueItemWidgetState extends State<IssueItemWidget> {
       if (res.statusCode == 200) {
         widget.onStatusChanged();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Đã cập nhật trạng thái thành công')),
+          const SnackBar(
+            content: Text('Đã cập nhật trạng thái thành công'),
+            backgroundColor: Colors.green, 
+            behavior: SnackBarBehavior.floating, 
+          ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Lỗi khi cập nhật trạng thái: ${res.statusCode}'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi khi cập nhật trạng thái: $e')),
+        SnackBar(
+          content: Text('Lỗi khi cập nhật trạng thái: $e'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
       );
     }
   }

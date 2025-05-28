@@ -1,10 +1,11 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
+﻿using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TeamManage.Data;
 using TeamManage.Models;
 using TeamManage.Models.DTO;
+
 
 namespace TeamManage.Controllers
 {
@@ -15,7 +16,7 @@ namespace TeamManage.Controllers
     {
         private readonly ApplicationDbContext _context;
         public TaskController(ApplicationDbContext context) => _context = context;
-        
+
         // ====================== Get Tasks ======================
 
         [HttpGet("module/{moduleId}")]
@@ -27,7 +28,7 @@ namespace TeamManage.Controllers
                         .Where(t => t.ModuleId == moduleId && !t.IsDeleted)
                         .ToListAsync();
 
-            var result = tasks.Select(t=> new TaskDTO
+            var result = tasks.Select(t => new TaskDTO
             {
                 Id = t.Id,
                 ModuleId = t.ModuleId,
@@ -47,7 +48,7 @@ namespace TeamManage.Controllers
 
             return Ok(result);
         }
-        
+
         [HttpGet("{id}")]
         public async Task<IActionResult> GetTaskById(int moduleId, int id)
         {
@@ -78,11 +79,11 @@ namespace TeamManage.Controllers
         }
 
         // ====================== Create Tasks ======================
-        
+
         [HttpPost("create/{moduleId}")]
         public async Task<IActionResult> CreateTask(int moduleId, [FromBody] TaskDTO taskDTO)
         {
-                // Validate input
+            // Validate input
             if (string.IsNullOrWhiteSpace(taskDTO.Title))
                 return BadRequest("Tiêu đề task không được để trống.");
             if (taskDTO.StartDate == null)
@@ -94,11 +95,11 @@ namespace TeamManage.Controllers
 
             //Validate AssignedUser
             var moduleMembers = await _context.ModuleMembers
-                                .Where(m=> m.ModuleId == moduleId && !m.IsDeleted)
+                                .Where(m => m.ModuleId == moduleId && !m.IsDeleted)
                                 .Select(m => m.UserId)
                                 .ToListAsync();
-        
-            if(taskDTO.AssignedUserId !=null && !moduleMembers.Contains(taskDTO.AssignedUserId))
+
+            if (taskDTO.AssignedUserId != null && !moduleMembers.Contains(taskDTO.AssignedUserId))
                 return BadRequest("Người được giao task phải là thành viên trong module.");
 
             var task = new TaskItem
@@ -114,10 +115,10 @@ namespace TeamManage.Controllers
                 UpdatedAt = DateTime.Now,
                 AssignedUserId = taskDTO.AssignedUserId
             };
-            
+
             _context.TaskItems.Add(task);
             await _context.SaveChangesAsync();
-            return Ok(new {message = "Tạo task thành công", task});
+            return Ok(new { message = "Tạo task thành công", task });
         }
 
         // ====================== Update Tasks ======================
@@ -130,36 +131,36 @@ namespace TeamManage.Controllers
                 return NotFound("Không tìm thấy task.");
 
             //Validate input
-            if(taskDTO.AssignedUserId != null)
+            if (taskDTO.AssignedUserId != null)
             {
                 var moduleMembers = await _context.ModuleMembers
-                                    .Where(m=> m.ModuleId == task.ModuleId && !m.IsDeleted)
+                                    .Where(m => m.ModuleId == task.ModuleId && !m.IsDeleted)
                                     .Select(m => m.UserId)
                                     .ToListAsync();
 
-                if(!moduleMembers.Contains(taskDTO.AssignedUserId))
+                if (!moduleMembers.Contains(taskDTO.AssignedUserId))
                     return BadRequest("Người được giao task phải là thông trong module.");
             }
 
             //Update từng field
-            if(!string.IsNullOrWhiteSpace(taskDTO.Title))
+            if (!string.IsNullOrWhiteSpace(taskDTO.Title))
                 task.Title = taskDTO.Title;
-            if(taskDTO.Note != null)
+            if (taskDTO.Note != null)
                 task.Note = taskDTO.Note;
-            if(Enum.IsDefined(typeof(ProcessStatus), taskDTO.Status))
+            if (Enum.IsDefined(typeof(ProcessStatus), taskDTO.Status))
                 task.Status = taskDTO.Status;
-            if(taskDTO.StartDate.HasValue)
+            if (taskDTO.StartDate.HasValue)
                 task.StartDate = taskDTO.StartDate;
-            if(taskDTO.EndDate.HasValue)
+            if (taskDTO.EndDate.HasValue)
                 task.EndDate = taskDTO.EndDate;
-            if(taskDTO.AssignedUserId != null)
+            if (taskDTO.AssignedUserId != null)
                 task.AssignedUserId = taskDTO.AssignedUserId;
             task.UpdatedAt = DateTime.Now;
-            
+
             _context.TaskItems.Update(task);
             await _context.SaveChangesAsync();
 
-            return Ok(new {message = "Cập nhật task thành công", task});
+            return Ok(new { message = "Cập nhật task thành công", task });
         }
 
         // ====================== Delete Tasks (Soft Delete) ======================
@@ -173,7 +174,7 @@ namespace TeamManage.Controllers
 
             task.IsDeleted = !task.IsDeleted;
             task.UpdatedAt = DateTime.Now;
-            
+
             _context.TaskItems.Update(task);
             await _context.SaveChangesAsync();
 
@@ -182,7 +183,7 @@ namespace TeamManage.Controllers
                 : "Đã khôi phục task.");
         }
 
-        [HttpDelete("hard-delete/{id}")] 
+        [HttpDelete("hard-delete/{id}")]
         public async Task<IActionResult> HardDeleteTask(int id)
         {
             var task = await _context.TaskItems.FirstOrDefaultAsync(t => t.Id == id);
@@ -197,7 +198,7 @@ namespace TeamManage.Controllers
 
         // ====================== Update Task Status ======================
 
-        [HttpPut("update-status/{id}")] 
+        [HttpPut("update-status/{id}")]
         public async Task<IActionResult> UpdateTaskStatus(int id, [FromQuery] ProcessStatus status)
         {
             var task = await _context.TaskItems.FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
@@ -216,6 +217,73 @@ namespace TeamManage.Controllers
                 taskId = task.Id,
                 newStatus = task.Status.ToString()
             });
+        }
+
+
+        // ====================== Comment On Task ======================
+        [HttpPost("comment/{taskId}")]
+        public async Task<IActionResult> CommentOnTask(int taskId, [FromBody] CreateTaskCommentDTO commentDTO)
+        {
+            if (string.IsNullOrWhiteSpace(commentDTO.Content))
+                return BadRequest("Nội dung bình luận không được để trống.");
+            var task = await _context.TaskItems.FirstOrDefaultAsync(t => t.Id == taskId && !t.IsDeleted);
+            if (task == null)
+                return NotFound("Không tìm thấy task.");
+
+            var userId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            if (userId == null || string.IsNullOrWhiteSpace(userId))
+                return Unauthorized("Bạn cần đăng nhập để bình luận.");
+
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null)
+                return NotFound("Người dùng không tồn tại.");
+
+            var comment = new TaskComment
+            {
+                TaskItemId = taskId,
+                UserId = userId,
+                Content = commentDTO.Content,
+                CreatedAt = DateTime.Now
+            };
+
+            _context.TaskComments.Add(comment);
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                message = "Commented",
+                comment = new TaskCommentDTO
+                {
+                    Id = comment.Id,
+                    TaskItemId = comment.TaskItemId,
+                    UserId = comment.UserId,
+                    UserName = user.FullName,
+                    Content = comment.Content,
+                    CreatedAt = comment.CreatedAt
+                }
+            });
+        }
+
+        [HttpGet("comment/{taskId}")]
+        public async Task<IActionResult> GetTaskComments(int taskId)
+        {
+            var userId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            var comments = await _context.TaskComments
+                        .Where(c => c.TaskItemId == taskId)
+                        .Include(c => c.User)
+                        .OrderByDescending(c => c.CreatedAt)
+                        .ToListAsync();
+
+            var result = comments.Select(c => new TaskCommentDTO
+            {
+                Id = c.Id,
+                TaskItemId = c.TaskItemId,
+                UserId = c.UserId,
+                UserName = c.User.FullName,
+                Content = c.Content,
+                CreatedAt = c.CreatedAt
+            });
+            return Ok(result);
         }
     }
 }

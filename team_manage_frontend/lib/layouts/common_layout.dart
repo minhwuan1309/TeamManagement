@@ -85,13 +85,19 @@ class _CommonLayoutState extends State<CommonLayout> {
       } else {
         setState(() => isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi kết nối: ${res.statusCode}')),
+          SnackBar(content: Text('Lỗi kết nối: ${res.statusCode}'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          ),
         );
       }
     } catch (e) {
       setState(() => isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi kết nối: $e')),
+        SnackBar(content: Text('Lỗi kết nối: $e'),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        ),
       );
     }
   }
@@ -155,13 +161,21 @@ class _CommonLayoutState extends State<CommonLayout> {
       } else {
         setState(() => isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi tải module: ${res.statusCode}')),
+          SnackBar(
+            content: Text('Lỗi tải module: ${res.statusCode}'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
         );
       }
     } catch (e) {
       setState(() => isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi kết nối: $e')),
+        SnackBar(
+          content: Text('Lỗi kết nối: $e'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
       );
     } finally {
       _refreshInProgress = false;
@@ -487,8 +501,16 @@ class _CommonLayoutState extends State<CommonLayout> {
             ),
           ),
           Spacer(),
-          // Thêm các action nếu có
           if (widget.appBarActions != null) ...widget.appBarActions!,
+
+          if(ModalRoute.of(context)?.settings.name != '/home')
+            IconButton(
+              icon: const Icon(Icons.arrow_back),
+              tooltip: 'Quay lại',
+              onPressed: (){
+                Navigator.pop(context);
+              }
+            )
         ],
       ),
     );

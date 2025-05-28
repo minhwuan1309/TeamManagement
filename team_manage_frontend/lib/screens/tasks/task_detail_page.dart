@@ -20,11 +20,13 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
   Map<String, dynamic>? task;
   List<dynamic> issues = [];
   bool isLoading = true;
+  List<Map<String, dynamic>> comments = [];
 
   @override
   void initState() {
     super.initState();
     fetchTask();
+    fetchComments();
   }
 
   Future<void> fetchTask() async {
@@ -58,6 +60,30 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Lỗi kết nối: $e')));
+    }
+  }
+
+  Future<void> fetchComments() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    final res = await http.get(
+      Uri.parse('$baseUrl/task/comment/${widget.taskId}'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+
+    if(res.statusCode == 200){
+      final decode = jsonDecode(res.body);
+      final values = decode[r'$values'] ?? [];
+      setState(() {
+        comments = List<Map<String, dynamic>>.from(
+          values.map((e) => Map<String, dynamic>.from(e)),
+        );
+      });
+    }else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi kết nối: ${res.statusCode}')),
+      );
     }
   }
 
@@ -399,6 +425,178 @@ Widget _buildStatusOption(String status, String label, String currentStatus) {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 24),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                      decoration: BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(color: Colors.grey.shade300, width: 1),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.comment_outlined, color: Colors.blue),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Bình luận',
+                                style: theme.textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.shade50,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Text(
+                              'Tổng số: ${comments.length}',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue.shade800,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    if (comments.isEmpty)
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 40),
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.chat_bubble_outline,
+                                size: 60,
+                                color: Colors.grey.shade400,
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Chưa có bình luận nào',
+                                style: TextStyle(
+                                  fontStyle: FontStyle.italic,
+                                  color: Colors.grey.shade600,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Hãy là người đầu tiên bình luận về task này',
+                                style: TextStyle(
+                                  color: Colors.grey.shade500,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    else
+                      Column(
+                        children: comments.map((comment) {
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            child: Card(
+                              elevation: 2,
+                              shadowColor: Colors.grey.withOpacity(0.1),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                side: BorderSide(color: Colors.grey.shade200, width: 0.5),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Comment header
+                                    Row(
+                                      children: [
+                                        CircleAvatar(
+                                          radius: 18,
+                                          backgroundColor: Colors.blue.shade100,
+                                          child: Text(
+                                            (comment['userName'] ?? 'A')[0].toUpperCase(),
+                                            style: TextStyle(
+                                              color: Colors.blue.shade800,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                comment['userName'] ?? 'Ẩn danh',
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 15,
+                                                ),
+                                              ),
+                                              Text(
+                                                formatDate(comment['createdAt']),
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.grey.shade600,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: Colors.grey.shade100,
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: Icon(
+                                            Icons.comment,
+                                            size: 14,
+                                            color: Colors.grey.shade600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    
+                                    // Comment content
+                                    if (comment['content']?.isNotEmpty ?? false) ...[
+                                      const SizedBox(height: 12),
+                                      Container(
+                                        width: double.infinity,
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey.shade50,
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(color: Colors.grey.shade200, width: 0.5),
+                                        ),
+                                        child: Text(
+                                          comment['content'] ?? '',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.grey.shade800,
+                                            height: 1.4,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+
                     
                     const SizedBox(height: 24),
                     

@@ -29,4 +29,19 @@
         public DateTime? EndDate { get; set; }
     }
 
+    public class TaskCommentDTO
+    {
+        public int Id { get; set; }
+        public int TaskItemId { get; set; }
+        public string? UserId { get; set; }
+        public string? UserName { get; set; }
+        public string? Content { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+
+    public class CreateTaskCommentDTO
+    {
+        public int TaskItemId { get; set; }
+        public string? Content { get; set; }
+    }
 }
