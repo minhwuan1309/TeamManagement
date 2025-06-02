@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:team_manage_frontend/api_service.dart';
-import 'package:team_manage_frontend/screens/modules/module_tree_widget.dart';
+import 'package:team_manage_frontend/screens/modules/module_detail_page.dart';
 import 'package:team_manage_frontend/screens/searchBar.dart';
+import 'package:team_manage_frontend/layouts/sidebar.dart'; 
 
 class CommonLayout extends StatefulWidget {
   final Widget child;
@@ -36,7 +37,8 @@ class _CommonLayoutState extends State<CommonLayout> {
   int? selectedProjectId;
   List<Map<String, dynamic>> projectMembers = [];
   final Map<int, Map<String, dynamic>> moduleCache = {};
-
+  int currentPageIndex = 0;
+  Map<String, dynamic>? selectedModule;
 
   Map<String, dynamic>? treeModulesData;
   final TextEditingController _searchController = TextEditingController();
@@ -46,7 +48,6 @@ class _CommonLayoutState extends State<CommonLayout> {
   void initState() {
     super.initState();
     fetchProjects();
-
     _searchController.addListener(() {
       setState(() {
         _searchQuery = _searchController.text;
@@ -65,6 +66,7 @@ class _CommonLayoutState extends State<CommonLayout> {
         Uri.parse('$baseUrl/project'),
         headers: {'Authorization': 'Bearer $token'},
       );
+      if(!mounted) return; 
 
       if (res.statusCode == 200) {
         final decoded = jsonDecode(res.body);
@@ -72,6 +74,7 @@ class _CommonLayoutState extends State<CommonLayout> {
             decoded is Map && decoded.containsKey(r'$values')
                 ? decoded[r'$values']
                 : (decoded is List ? decoded : []);
+        if (!mounted) return;
 
         setState(() {
           projects = projectList.where((p) => p['isDeleted'] == false).toList();
@@ -87,7 +90,6 @@ class _CommonLayoutState extends State<CommonLayout> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Lỗi kết nối: ${res.statusCode}'),
           backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
           ),
         );
       }
@@ -96,7 +98,6 @@ class _CommonLayoutState extends State<CommonLayout> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Lỗi kết nối: $e'),
         backgroundColor: Colors.red,
-        behavior: SnackBarBehavior.floating,
         ),
       );
     }
@@ -113,9 +114,22 @@ class _CommonLayoutState extends State<CommonLayout> {
 
     if (res.statusCode == 200) {
       final decoded = jsonDecode(res.body);
-      final members = decoded['members']?[r'$values'] ?? [];
+
+      // ✅ Kiểm tra members chính xác và xử lý kiểu Map
+      final membersRaw = decoded['members'];
+      List<Map<String, dynamic>> normalizedMembers = [];
+
+      if (membersRaw is Map && membersRaw.containsKey(r'$values')) {
+        final values = membersRaw[r'$values'];
+        if (values is List) {
+          normalizedMembers = values.map<Map<String, dynamic>>(
+            (e) => Map<String, dynamic>.from(e),
+          ).toList();
+        }
+      }
+
       setState(() {
-        projectMembers = List<Map<String, dynamic>>.from(members);
+        projectMembers = normalizedMembers;
       });
     }
   }
@@ -164,8 +178,7 @@ class _CommonLayoutState extends State<CommonLayout> {
           SnackBar(
             content: Text('Lỗi tải module: ${res.statusCode}'),
             backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
+            ),
         );
       }
     } catch (e) {
@@ -174,7 +187,6 @@ class _CommonLayoutState extends State<CommonLayout> {
         SnackBar(
           content: Text('Lỗi kết nối: $e'),
           backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
         ),
       );
     } finally {
@@ -187,8 +199,6 @@ class _CommonLayoutState extends State<CommonLayout> {
       treeModulesData = moduleCache[projectId]; 
     }
   }
-
-
 
   List<Map<String, dynamic>> buildModuleTreeFromFlatList(List<dynamic> flatModules) {
     final Map<int, Map<String, dynamic>> mapById = {};
@@ -212,254 +222,37 @@ class _CommonLayoutState extends State<CommonLayout> {
     return tree;
   }
 
-
-  Future<String?> getCurrentUserName() async {
-    final profile = await ApiService.getProfile();
-    return profile != null ? profile['fullName'] as String? : null;
+  void _onProjectChanged(int newProjectId) {
+    setState(() {
+      selectedProjectId = newProjectId;
+      isLoading = true;
+    });
+    fetchTreeModules(newProjectId);
+    fetchProjectMembers(newProjectId);
   }
 
-  Widget _buildDrawerContent(BuildContext context) {
-    return Container(
-      width: MediaQuery.of(context).size.width / 4, 
-      child: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-          DrawerHeader(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.blue.shade700, Colors.blue.shade900],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                const Row(
-                  children: [
-                    Icon(Icons.dashboard, color: Colors.white, size: 36),
-                    SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "SThink",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          "Team Management",
-                          style: TextStyle(color: Colors.white, fontSize: 16),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const Spacer(),
-                FutureBuilder<String?>(
-                  future: getCurrentUserName(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Text(
-                        'Đang tải tên...',
-                        style: TextStyle(color: Colors.white70, fontSize: 18),
-                      );
-                    }
-                    final name = snapshot.data ?? 'Không rõ tên';
-                    return Row(
-                      children: [
-                        const Icon(
-                          Icons.person,
-                          color: Colors.white70,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            name,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () => ApiService.logout(context),
-                          style: TextButton.styleFrom(
-                            foregroundColor: Colors.white70,
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                          ),
-                          child: const Text(
-                            'Đăng xuất',
-                            style: TextStyle(fontSize: 14),
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-                            
-            ListTile(
-              leading: const Icon(Icons.home),
-              title: const Text('Trang chủ'),
-              onTap: () => Navigator.pushNamed(context, '/home'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.person),
-              title: const Text('Hồ sơ cá nhân'),
-              onTap: () => Navigator.pushNamed(context, '/profile'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.supervisor_account),
-              title: const Text('Quản lý người dùng'),
-              onTap: () => Navigator.pushNamed(context, '/user'),
-            ),
-            const Divider(),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text("Chọn Dự án",
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<int>(
-                            value: selectedProjectId,
-                            isExpanded: true,
-                            items: projects.map((p) {
-                              return DropdownMenuItem<int>(
-                                value: p['id'],
-                                child: Text(p['name']),
-                              );
-                            }).toList(),
-                            onChanged: (int? newProjectId) {
-                              if (newProjectId == null) return;
-                              setState(() {
-                                selectedProjectId = newProjectId;
-                                isLoading = true;
-                              });
-                              fetchTreeModules(newProjectId);
-                              fetchProjectMembers(newProjectId);
-                            },
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                        MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          child: InkWell(
-                            onTap: () => Navigator.pushReplacementNamed(context, '/project/create'),
-                            borderRadius: BorderRadius.circular(8),
-                            child: Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: Colors.green.shade50,
-                                border: Border.all(color: Colors.green.shade300),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(Icons.add, color: Colors.green),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const Divider(),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "Danh sách module",
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  // Thêm legend cho trạng thái
-                  Row(
-                    children: [
-                      Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          color: Colors.green,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      SizedBox(width: 4),
-                      Text(
-                        "Xong",
-                        style: TextStyle(fontSize: 12),
-                      ),
-                      SizedBox(width: 8),
-                      Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          color: Colors.orange,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      SizedBox(width: 4),
-                      Text(
-                        "Đang làm",
-                        style: TextStyle(fontSize: 12),
-                      ),
-                      SizedBox(width: 8),
-                      Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          color: Colors.grey,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      SizedBox(width: 4),
-                      Text(
-                        "Chưa làm",
-                        style: TextStyle(fontSize: 12),
-                      )
-                    ],
-                  ),
-                ],
-              ),
-            ),
+  void _onModuleSelected(Map<String, dynamic> module) {
+    setState(() {
+      selectedModule = module;
+      currentPageIndex = 1; // Chuyển sang trang chi tiết module
+    });
+  }
 
-            if (selectedProjectId != null && treeModulesData != null)
-              ModuleDropdownWidget(modules: treeModulesData!, projectMembers: projectMembers),
-          ],
-        ),
-      ),
-    );
+  String get dynamicTitle {
+    switch (currentPageIndex) {
+      case 1:
+        return selectedModule != null 
+          ? 'Chi tiết Module: ${selectedModule!['name'] ?? 'Không rõ tên'}'
+          : 'Chi tiết Module';
+      default:
+        return widget.title;
+    }
+  }
+
+  void _onRefreshModules() {
+    if (selectedProjectId != null) {
+      fetchTreeModules(selectedProjectId!);
+    }
   }
 
   Widget _buildContentHeader() {
@@ -493,23 +286,47 @@ class _CommonLayoutState extends State<CommonLayout> {
             tooltip: _isSidebarVisible ? 'Ẩn sidebar' : 'Hiện sidebar',
           ),
           SizedBox(width: 12),
-          Text(
-            widget.title,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+          
+          // Hiển thị nút back khi đang ở trang chi tiết module
+          if (currentPageIndex == 1)
+            IconButton(
+              icon: const Icon(Icons.arrow_back),
+              tooltip: 'Quay lại danh sách',
+              onPressed: () {
+                setState(() {
+                  currentPageIndex = 0;
+                  selectedModule = null;
+                });
+              },
+            ),
+          
+          Expanded(
+            child: Text(
+              dynamicTitle,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
-          Spacer(),
+          
+          // Thêm nút reload ở đây
+          IconButton(
+            onPressed: _onRefreshModules,
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Làm mới dữ liệu',
+          ),
+          
           if (widget.appBarActions != null) ...widget.appBarActions!,
-
-          if(ModalRoute.of(context)?.settings.name != '/home')
+          
+          if (Navigator.of(context).canPop())
             IconButton(
               icon: const Icon(Icons.arrow_back),
               tooltip: 'Quay lại',
-              onPressed: (){
+              onPressed: () {
                 Navigator.pop(context);
-              }
+              },
             )
         ],
       ),
@@ -520,17 +337,33 @@ class _CommonLayoutState extends State<CommonLayout> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: null,
-      drawer: _isSidebarVisible ? null : _buildDrawerContent(context),
+      drawer: _isSidebarVisible ? null : Sidebar(
+        projects: projects,
+        selectedProjectId: selectedProjectId,
+        projectMembers: projectMembers,
+        treeModulesData: treeModulesData,
+        onProjectChanged: _onProjectChanged,
+        onModuleSelected: _onModuleSelected,
+        onRefresh: _onRefreshModules,
+      ),
       body: Row(
         children: [
-          if (_isSidebarVisible) _buildDrawerContent(context),
+          if (_isSidebarVisible)
+            Sidebar(
+              projects: projects,
+              selectedProjectId: selectedProjectId,
+              projectMembers: projectMembers,
+              treeModulesData: treeModulesData,
+              onProjectChanged: _onProjectChanged,
+              onModuleSelected: _onModuleSelected,
+              onRefresh: _onRefreshModules,
+            ),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildContentHeader(),
 
-                // 🧠 Thêm thanh tìm kiếm ngay dưới header
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: SizedBox(
@@ -542,8 +375,19 @@ class _CommonLayoutState extends State<CommonLayout> {
                 Expanded(
                   child: isLoading
                       ? const Center(child: CircularProgressIndicator())
-                      : widget.child,
-                ),
+                      : IndexedStack(
+                          index: currentPageIndex,
+                          children: [
+                            widget.child,
+                            selectedModule != null
+                                ? ModuleDetailPage.withId(
+                                    key: ValueKey(selectedModule?['id']),
+                                    moduleId: selectedModule?['id'],
+                                  )
+                                : const SizedBox(),
+                          ],
+                        ),
+                )
               ],
             ),
           ),

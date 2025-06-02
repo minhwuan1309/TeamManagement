@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using TeamManage.Data;
 
@@ -9,6 +10,7 @@ namespace TeamManage.Models.DTO
         public int ProjectId { get; set; }
 
         public string? Code { get; set; }          // "1.2.3"
+        [Required(ErrorMessage = "Tên module là bắt buộc")]
         public string Name { get; set; }
 
         public int? ParentModuleId { get; set; }  // null nếu là node gốc

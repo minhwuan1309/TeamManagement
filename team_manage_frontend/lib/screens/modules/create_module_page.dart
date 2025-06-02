@@ -75,16 +75,23 @@ class _CreateModulePageState extends State<CreateModulePage> {
       body: body,
     );
 
+    if (!mounted) return;
     setState(() => isSubmitting = false);
 
     if (res.statusCode == 200) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Tạo module thành công')),
+        const SnackBar(
+          content: Text('Tạo module thành công'),
+          backgroundColor: Colors.green,
+          ),
       );
       Navigator.pop(context, true);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Tạo module thất bại: ${res.statusCode}')),
+        SnackBar(
+          content: Text('Tạo module thất bại: ${res.statusCode}'),
+          backgroundColor: Colors.red,
+          ),
       );
     }
   }
@@ -110,10 +117,6 @@ class _CreateModulePageState extends State<CreateModulePage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            IconButton(
-                              onPressed: () => Navigator.pop(context),
-                              icon: const Icon(Icons.arrow_back, color: Colors.blue),
-                            ),
                             Row(
                               children: [
                                 Icon(Icons.view_module, color: Colors.blue.shade700),
@@ -150,9 +153,15 @@ class _CreateModulePageState extends State<CreateModulePage> {
                                 children: [
                                   Icon(Icons.people, color: Colors.blue.shade700),
                                   const SizedBox(width: 8),
-                                  const Text('Thành viên Module', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                                  const Text('Chọn thành viên tham gia vào Module', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),                             
                                 ],
                               ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  const SizedBox(width: 12),
+                                  const Text('(Các thành viên đã tham gia project này)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),                                   
+                              ]),
                               const SizedBox(height: 16),
                               if (selectedMembers.isNotEmpty)
                                 Padding(

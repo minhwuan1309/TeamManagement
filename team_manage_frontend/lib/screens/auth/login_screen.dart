@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:team_manage_frontend/api_service.dart';
+import 'package:team_manage_frontend/screens/splash_screen_after_login.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -15,33 +17,41 @@ class _LoginScreenState extends State<LoginScreen> {
   bool isPasswordVisible = false;
   bool isLoading = false;
 
-  Future<void> handleLogin() async {
+Future<void> handleLogin() async {
+  setState(() {
+    isLoading = true;
+    errorMessage = '';
+  });
+
+  try {
+    final token = await ApiService.login(
+      emailController.text.trim(),
+      passwordController.text.trim(),
+    );
+
     setState(() {
-      isLoading = true;
-      errorMessage = '';
+      isLoading = false;
     });
 
-    try {
-      final token = await ApiService.login(
-        emailController.text.trim(),
-        passwordController.text.trim(),
+    if (token != null) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('token', token);
+      // 👉 Hiện splash tạm (2 giây) trước khi chuyển sang Home
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const SplashScreenAfterLogin(),
+        ),
       );
-
-      setState(() {
-        isLoading = false;
-      });
-
-      if (token != null) {
-        Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
-
-      }
-    } catch (e) {
-      setState(() {
-        isLoading = false;
-        errorMessage = e.toString().replaceFirst('Exception: ', '').trim();
-      });
     }
+  } catch (e) {
+    setState(() {
+      isLoading = false;
+      errorMessage = e.toString().replaceFirst('Exception: ', '').trim();
+    });
   }
+}
+
 
   @override
   Widget build(BuildContext context) {

@@ -7,6 +7,7 @@ import 'package:team_manage_frontend/screens/auth/verify_email_screen.dart';
 import 'package:team_manage_frontend/screens/modules/create_module_page.dart';
 import 'package:team_manage_frontend/screens/modules/module_detail_page.dart';
 import 'package:team_manage_frontend/screens/project/create_project_page.dart';
+import 'package:team_manage_frontend/screens/splash_screen.dart';
 import 'package:team_manage_frontend/screens/tasks/task_detail_page.dart';
 import 'screens/home_screen.dart';
 import 'screens/user/create_user_page.dart';
@@ -27,11 +28,15 @@ class MyApp extends StatelessWidget {
       title: 'TeamManage',
       theme: ThemeData(primarySwatch: Colors.blue),
 
-      initialRoute: '/home',
+      initialRoute: '/',
       onGenerateRoute: (settings) {
         final uri = Uri.parse(settings.name ?? '');
         final pathSegments = uri.pathSegments;
 
+        //Splash screen
+        if(uri.path == '/') {
+          return MaterialPageRoute(builder: (context) => const SplashScreen());
+        }
         // Basic routes
         if (uri.path == '/home') return MaterialPageRoute(builder: (context) => const HomeScreen());
         if (uri.path == '/login') return MaterialPageRoute(builder: (context) => const LoginScreen());
@@ -64,6 +69,7 @@ class MyApp extends StatelessWidget {
             );
           }
         }
+
 
         if (uri.path == '/module-detail') {
           final idParam = uri.queryParameters['id'];

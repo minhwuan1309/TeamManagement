@@ -238,7 +238,6 @@ class _UserPageState extends State<UserPage> {
           const SnackBar(
             content: Text("Cập nhật vai trò thành công"),
             backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
           ),
         );
       }
@@ -248,7 +247,6 @@ class _UserPageState extends State<UserPage> {
           const SnackBar(
             content: Text("Thất bại khi cập nhật vai trò"),
             backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
           ),
         );
       }

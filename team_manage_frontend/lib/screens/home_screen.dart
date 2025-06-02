@@ -17,8 +17,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   String userName = '';
-  Map<DateTime, Map<String, int>> issueTrend = {};
   Map<DateTime, Map<String, int>> taskTrend = {};
+  Map<DateTime, Map<String, int>> issueTrend = {};
 
 
   final String metabaseUrl = metabasePublicUrl;
@@ -72,8 +72,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       final profile = await ApiService.getProfile();
-      final taskData = await fetchIssueTrend();
-      final issueData = await fetchTaskTrend();
+      final taskData = await fetchTaskTrend();
+      final issueData = await fetchIssueTrend();
 
       setState(() {
         userName = profile?['fullName'] ?? '';
@@ -156,13 +156,13 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             const SizedBox(height: 12),
             MultiLineChartWidget(
-              title: "Issue",
-              timeSeriesData: issueTrend,
+              title: "Task",
+              timeSeriesData: taskTrend,
             ),
             const SizedBox(height: 16),
             MultiLineChartWidget(
-              title: "Task",
-              timeSeriesData: taskTrend,
+              title: "Issue",
+              timeSeriesData: issueTrend,
             ),
           ],
         ),

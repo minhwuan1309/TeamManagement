@@ -1,10 +1,20 @@
 import 'package:flutter/material.dart';
 
 class ModuleDropdownWidget extends StatefulWidget {
+  final int projectId;
   final Map<String, dynamic> modules;
   final List<Map<String, dynamic>>? projectMembers;
+  final Function(Map<String, dynamic> module)? onModuleSelected;
+  final VoidCallback? onRefresh;
 
-  const ModuleDropdownWidget({super.key, required this.modules, this.projectMembers});
+  const ModuleDropdownWidget({
+    super.key,
+    required this.projectId,
+    required this.modules,
+    this.projectMembers,
+    this.onModuleSelected,
+    this.onRefresh,
+  });
 
   @override
   State<ModuleDropdownWidget> createState() => _ModuleDropdownWidgetState();
@@ -51,6 +61,8 @@ class _ModuleDropdownWidgetState extends State<ModuleDropdownWidget> {
       children: [
         _buildSearchBar(),
         const SizedBox(height: 8),
+        _buildActionButtons(),
+        const SizedBox(height: 8),
         ListView(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -60,8 +72,77 @@ class _ModuleDropdownWidgetState extends State<ModuleDropdownWidget> {
     );
   }
 
+  Widget _buildActionButtons() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          // Refresh Button
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.blue.shade200),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.green.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.green.shade200),
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: () async {
+                  final result = await Navigator.pushNamed(
+                    context,
+                    '/module/create',
+                    arguments: {
+                      'projectId': widget.projectId,
+                      'projectMembers': widget.projectMembers ?? [],
+                      'parentModuleId': null,
+                    },
+                  );
+                  if (result == true) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Tạo module thành công!'))
+                    );
+                    widget.onRefresh?.call();
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.add, color: Colors.green, size: 20),
+                      SizedBox(width: 4),
+                      Text(
+                        'Thêm Module',
+                        style: TextStyle(
+                          color: Colors.green,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSearchBar() {
     return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
@@ -93,10 +174,9 @@ class _ModuleDropdownWidgetState extends State<ModuleDropdownWidget> {
     );
   }
 
-
   /// Hàm normalize một module (cha + đệ quy children)
   Map<String, dynamic> _normalizeModule(Map<String, dynamic> raw) {
-    final projectId = raw['projectId'] ?? 0;
+    final projectId = raw['projectId'] ?? widget.projectId;
 
     return {
       'id': raw['id'],
@@ -170,8 +250,8 @@ class _ModuleDropdownWidgetState extends State<ModuleDropdownWidget> {
 
     return Card(
       margin: EdgeInsets.only(
-        left: depth * 16.0,
-        right: 0,
+        left: depth * 16.0 + 8,
+        right: 8,
         bottom: 4,
       ),
       elevation: 0.5,
@@ -222,11 +302,9 @@ class _ModuleDropdownWidgetState extends State<ModuleDropdownWidget> {
                 Expanded(
                   child: InkWell(
                     onTap: () {
-                      final moduleId = module['id'];
-                      Navigator.pushNamed(
-                        context,
-                        '/module-detail?id=$moduleId',
-                      );
+                      if (widget.onModuleSelected != null) {
+                        widget.onModuleSelected!(module);
+                      }
                     },
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -253,19 +331,33 @@ class _ModuleDropdownWidgetState extends State<ModuleDropdownWidget> {
                 ),
                 Tooltip(
                   message: 'Thêm module con',
-                  child: IconButton(
-                    icon: const Icon(Icons.add_circle_outline, color: Colors.green),
-                    onPressed: () {
-                      Navigator.pushNamed(
-                        context,
-                        '/module/create',
-                        arguments: {
-                          'parentModuleId': module['id'],
-                          'projectId': module['projectId'],
-                          'projectMembers': widget.projectMembers,
-                        },
-                      );
-                    },
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(20),
+                      onTap: () async {
+                        final result = await Navigator.pushNamed(
+                          context,
+                          '/module/create',
+                          arguments: {
+                            'projectId': module['projectId'],
+                            'parentModuleId': module['id'],
+                            'projectMembers': widget.projectMembers,
+                          },
+                        );
+                        if (result == true) {
+                          widget.onRefresh?.call();
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        child: const Icon(
+                          Icons.add_circle_outline, 
+                          color: Colors.green,
+                          size: 20,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ],

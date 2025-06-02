@@ -71,7 +71,6 @@ class _IssueItemWidgetState extends State<IssueItemWidget> {
           SnackBar(
             content: Text('Đã lưu vào: $res'),
             backgroundColor: Colors.green[600],
-            behavior: SnackBarBehavior.floating,
             ),
         );
       }
@@ -114,7 +113,6 @@ class _IssueItemWidgetState extends State<IssueItemWidget> {
           const SnackBar(
             content: Text('Đã cập nhật trạng thái thành công'),
             backgroundColor: Colors.green, 
-            behavior: SnackBarBehavior.floating, 
           ),
         );
       } else {
@@ -122,7 +120,6 @@ class _IssueItemWidgetState extends State<IssueItemWidget> {
           SnackBar(
             content: Text('Lỗi khi cập nhật trạng thái: ${res.statusCode}'),
             backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
           ),
         );
       }
@@ -131,7 +128,6 @@ class _IssueItemWidgetState extends State<IssueItemWidget> {
         SnackBar(
           content: Text('Lỗi khi cập nhật trạng thái: $e'),
           backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
         ),
       );
     }

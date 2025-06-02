@@ -130,40 +130,75 @@ namespace TeamManage.Controllers
         public async Task<IActionResult> CreateModule([FromBody] ModuleDTO moduleDTO)
         {
             if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            var module = new Module
             {
-                Name = moduleDTO.Name,
-                ProjectId = moduleDTO.ProjectId,
-                Status = ProcessStatus.None,
-                IsDeleted = false,
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now,
-                Code = "pending",
-                ParentModuleId = moduleDTO.ParentModuleId,
-                ModuleMembers = moduleDTO.Members != null ?
-                    moduleDTO.Members.Select(member => new ModuleMember
+                var errorList = ModelState
+                    .Where(e => e.Value.Errors.Count > 0)
+                    .Select(e => new {
+                        Field = e.Key,
+                        Errors = e.Value.Errors.Select(x => x.ErrorMessage).ToList()
+                    });
+
+                return BadRequest(new {
+                    message = "ModelState Invalid",
+                    errors = errorList
+                });
+            }
+
+            try
+            {
+                var projectExists = await _context.Projects.AnyAsync(p => p.Id == moduleDTO.ProjectId);
+                if (!projectExists)
+                    return BadRequest("ProjectId không tồn tại.");
+
+                var memberIds = moduleDTO.Members?
+                    .Where(m => !string.IsNullOrWhiteSpace(m.UserId))
+                    .Select(m => m.UserId)
+                    .ToList() ?? new List<string>();
+
+                var invalidMembers = memberIds
+                    .Where(id => !_context.Users.Any(u => u.Id == id))
+                    .ToList();
+
+                if (invalidMembers.Any())
+                    return BadRequest(new
                     {
-                        UserId = member.UserId,
+                        message = "Một số thành viên không tồn tại trong hệ thống.",
+                        invalidMembers
+                    });
+
+                var module = new Module
+                {
+                    Name = moduleDTO.Name,
+                    ProjectId = moduleDTO.ProjectId,
+                    Status = ProcessStatus.None,
+                    IsDeleted = false,
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now,
+                    Code = "pending",
+                    ParentModuleId = moduleDTO.ParentModuleId,
+                    ModuleMembers = memberIds.Select(userId => new ModuleMember
+                    {
+                        UserId = userId,
                         CreatedAt = DateTime.Now,
                         UpdatedAt = DateTime.Now
-                    }).ToList() : new List<ModuleMember>()
-            };
+                    }).ToList()
+                };
+                _context.Modules.Add(module);
+                await _context.SaveChangesAsync();
 
-            _context.Modules.Add(module);
-            await _context.SaveChangesAsync();
+                module.Code = await GenerateModuleCode(module.ParentModuleId, module.Id);
+                _context.Modules.Update(module);
+                await _context.SaveChangesAsync();
 
-            if (moduleDTO.ParentModuleId != null)
+                return Ok(new{ message= "Tạo module thành công", module });
+            }catch (Exception ex)
             {
-                module.ParentModuleId = moduleDTO.ParentModuleId;
+                return StatusCode(500, new
+                {
+                    message = "Lỗi khi tạo module.",
+                    error = ex.Message
+                });
             }
-            module.Code = await GenerateModuleCode(moduleDTO.ParentModuleId, module.Id);
-
-            _context.Modules.Update(module);
-            await _context.SaveChangesAsync();
-
-            return Ok(new { message = "Tạo module thành công", module });
         }
 
         // Tạo mã module dựa trên ParentModuleId "1.0.0; 1.1.0; 1.2.0"
@@ -286,8 +321,15 @@ namespace TeamManage.Controllers
         // ====================== Delete Modules ======================
 
         [HttpDelete("delete/{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteModule(int id)
         {
+            //kiểm tra role của người thực hiện xóa module
+            var UserRole = User.FindFirst("UserRole")?.Value;
+            if (UserRole != "Admin")
+                return Forbid("Chỉ Admin mới có quyền xóa module.");
+
+
             var module = await _context.Modules.FirstOrDefaultAsync(x => x.Id == id);
             if (module == null)
                 return NotFound("Không tìm thấy module.");
@@ -304,8 +346,13 @@ namespace TeamManage.Controllers
         }
 
         [HttpDelete("hard-delete/{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> HardDeleteModule(int id)
         {
+            var UserRole = User.FindFirst("UserRole")?.Value;
+            if (UserRole != "Admin")
+                return Forbid("Chỉ Admin mới có quyền xóa module.");
+                
             var module = await _context.Modules.FirstOrDefaultAsync(x => x.Id == id);
             if (module == null)
                 return NotFound("Không tìm thấy module.");

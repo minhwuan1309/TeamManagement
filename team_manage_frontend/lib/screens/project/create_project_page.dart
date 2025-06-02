@@ -71,7 +71,7 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
 
     if (res.statusCode == 200) {
       if (mounted) {
-        Navigator.pop(context, true); // Trả về true để trigger reload
+        Navigator.pop(context, true); 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Tạo project thành công"),

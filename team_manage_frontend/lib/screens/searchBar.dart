@@ -285,10 +285,6 @@ class GlobalSearchBar extends StatelessWidget {
       _fetchTaskIdOfIssue(id).then((taskId) {
         if (taskId != null) {
           Navigator.pushNamed(context, '/task-detail?id=$taskId');
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Không tìm thấy task chứa issue này')),
-          );
         }
       });
     } else if (type == 'user') {

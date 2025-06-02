@@ -15,6 +15,7 @@ class TaskListCard extends StatefulWidget {
   final String Function(String?) formatDate;
   final Color Function(dynamic status) getStatusColor;
   final String Function(dynamic status) getStatusText;
+  final int currentUserRole;
 
   const TaskListCard({
     super.key,
@@ -24,6 +25,7 @@ class TaskListCard extends StatefulWidget {
     required this.formatDate,
     required this.getStatusColor,
     required this.getStatusText,
+    required this.currentUserRole,
   }) : _refreshModuleData = refreshModuleData;
 
   @override
@@ -36,16 +38,16 @@ class _TaskListCardState extends State<TaskListCard> {
   final Map<int, bool> loadingComments = {};
   final Map<int, TextEditingController> commentControllers = {};
   final Map<int, bool> submittingComments = {};
+  late final int currentUserRole = widget.currentUserRole;
 
   @override
   void dispose() {
-    // Clean up controllers
     for (var controller in commentControllers.values) {
       controller.dispose();
     }
     super.dispose();
   }
-
+  
   Future<void> _submitComment(int taskId) async {
     final controller = commentControllers[taskId];
     if (controller == null || controller.text.trim().isEmpty) return;
@@ -86,7 +88,7 @@ class _TaskListCardState extends State<TaskListCard> {
           SnackBar(
             content: const Text('Đã lưu bình luận'),
             backgroundColor: Colors.green[600],
-            behavior: SnackBarBehavior.floating,
+            
           ),
         );
       } else {
@@ -143,7 +145,7 @@ class _TaskListCardState extends State<TaskListCard> {
       SnackBar(
         content: Text(message),
         backgroundColor: Colors.red[600],
-        behavior: SnackBarBehavior.floating,
+        
       ),
     );
   }
@@ -263,7 +265,23 @@ class _TaskListCardState extends State<TaskListCard> {
             color: Colors.transparent,
             child: InkWell(
               borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-              onTap: () => _navigateToTaskDetail(taskId),
+            onTap: () {
+              final statusStr = status.toString().toLowerCase();
+              final normalizedStatus = statusStr == 'done' ? 2 : statusStr == 'inprogress' ? 1 : 0;
+
+              if (normalizedStatus == 2 && currentUserRole != 0) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Chỉ admin mới được xem task đã hoàn thành.'),
+                    backgroundColor: Colors.red,
+                    
+                  ),
+                );
+                return;
+              }
+              _navigateToTaskDetail(taskId);
+            },
+            
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(

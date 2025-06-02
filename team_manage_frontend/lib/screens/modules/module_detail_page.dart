@@ -33,14 +33,22 @@ class _ModuleDetailPageState extends State<ModuleDetailPage> {
   Map? currentModule;
   Map? currentWorkflow;
   String? errorMessage;
+  int currentUserRole = -1;
 
   @override
   void initState() {
     super.initState();
+    _loadUserRole();
 
     // 1. Ưu tiên truyền trực tiếp module từ widget
     if (widget.module != null) {
       currentModule = widget.module!;
+
+      final m = currentModule?['members'];
+
+      if (m is Map && m.containsKey(r'$values')) {
+        currentModule!['members'] = m[r'$values'];
+      }
       isLoading = false;
     } 
     // 2. Nếu có moduleId từ constructor
@@ -63,33 +71,47 @@ class _ModuleDetailPageState extends State<ModuleDetailPage> {
       }
     }
   }
-
-  Future<void> fetchModule(int moduleId) async {
-    setState(() => isLoading = true);
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
-
-    final res = await http.get(
-      Uri.parse('$baseUrl/module/$moduleId'),
-      headers: {'Authorization': 'Bearer $token'},
-    );
-
-    if (res.statusCode == 200) {
+    Future<void> _loadUserRole() async {
+      final profile = await ApiService.getProfile();
       setState(() {
-        currentModule = jsonDecode(res.body);
-        isLoading = false;
+        currentUserRole = profile?['role'] == 'admin' ? 0 : 1;
       });
-    } else {
-      setState(() => isLoading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Lỗi: ${res.body}")));
-      }
+    }
+
+Future<void> fetchModule(int moduleId) async {
+  setState(() => isLoading = true);
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('token');
+
+  final res = await http.get(
+    Uri.parse('$baseUrl/module/$moduleId'),
+    headers: {'Authorization': 'Bearer $token'},
+  );
+
+  if (res.statusCode == 200) {
+    final data = jsonDecode(res.body);
+
+    // ✅ Normalize members
+    final rawMembers = data['members'];
+    if (rawMembers is Map && rawMembers.containsKey(r'$values')) {
+      data['members'] = rawMembers[r'$values'];
+    }
+
+    setState(() {
+      currentModule = data;
+      isLoading = false;
+    });
+  } else {
+    setState(() => isLoading = false);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Lỗi: ${res.body}")),
+      );
     }
   }
+}
 
-  // Hàm debug để kiểm tra dữ liệu workflow trong fetchWorkflow
+
   Future<void> fetchWorkflow(int moduleId) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -239,19 +261,31 @@ class _ModuleDetailPageState extends State<ModuleDetailPage> {
           isUpdating = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Cập nhật trạng thái thành công')),
+          SnackBar(
+            content: Text('Cập nhật trạng thái thành công'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            ),
         );
       } else {
         setState(() => isUpdating = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi cập nhật: ${res.statusCode}')),
+          SnackBar(
+            content: Text('Lỗi cập nhật: ${res.statusCode}'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            ),
         );
       }
     } catch (e) {
       setState(() => isUpdating = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Lỗi kết nối: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi kết nối: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            ),
+        );
     }
   }
 
@@ -391,10 +425,13 @@ class _ModuleDetailPageState extends State<ModuleDetailPage> {
       }
     }
 
-    return CommonLayout(
-      title: 'Chi tiết Module',
-      appBarActions: [
-        IconButton(
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 1,
+        actions: [
+          IconButton(
           icon: const Icon(Icons.group, color: Colors.blue),
           tooltip: 'Thành viên',
           onPressed: () {
@@ -635,7 +672,9 @@ class _ModuleDetailPageState extends State<ModuleDetailPage> {
               );
             },
           ),
-      ],
+        ],
+      ),
+
       floatingActionButton: SpeedDial(
         icon: Icons.keyboard_arrow_up, // mũi tên ^
         activeIcon: Icons.close,
@@ -677,7 +716,7 @@ class _ModuleDetailPageState extends State<ModuleDetailPage> {
           ),
         ],
       ),
-      child:
+      body:
           isUpdating
               ? const Center(
                 child: CircularProgressIndicator(color: Colors.blue),
@@ -895,6 +934,7 @@ class _ModuleDetailPageState extends State<ModuleDetailPage> {
                         formatDate: _formatDate,
                         getStatusColor: _getStatusColor,
                         getStatusText: _getStatusText,
+                        currentUserRole: currentUserRole,
                       ),
                     ],
                   ),

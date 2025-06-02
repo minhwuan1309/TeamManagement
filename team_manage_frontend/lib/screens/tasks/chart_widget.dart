@@ -20,133 +20,11 @@ class _MultiLineChartWidgetState extends State<MultiLineChartWidget> {
   Set<String> hiddenLines = {};
   int? touchedIndex;
 
-  final statusList = ["Not Started", "In Progress", "Completed"];
-    
   final statusVietnameseMap = {
-    "Not Started": "Chưa bắt đầu",
-    "In Progress": "Đang thực hiện",
-    "Completed": "Hoàn thành",
+      "Not Started": "Chưa bắt đầu",
+      "In Progress": "Đang thực hiện",
+      "Completed": "Hoàn thành",
   };
-    
-  final colorMap = {
-    "Not Started": const Color(0xFF6B7280), // Gray-500
-    "In Progress": const Color(0xFFF59E0B), // Amber-500
-    "Completed": const Color(0xFF10B981), // Emerald-500
-  };
-
-  final iconMap = {
-    "Not Started": Icons.pause_circle_outline,
-    "In Progress": Icons.access_time,
-    "Completed": Icons.check_circle,
-  };
-
-  Widget _buildDataTable(List<DateTime> sortedDates, List<String> statusList, Map<String, Color> colorMap) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey[300]!),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        children: [
-          // Header
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-            decoration: BoxDecoration(
-              color: Colors.grey[50],
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(8),
-                topRight: Radius.circular(8),
-              ),
-            ),
-            child: Row(
-              children: [
-                const SizedBox(
-                  width: 80,
-                  child: Text(
-                    'Ngày',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-                ...statusList.map((status) => Expanded(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          color: colorMap[status],
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        statusVietnameseMap[status]?.split(' ').first ?? status.split(' ').first,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                )),
-              ],
-            ),
-          ),
-          // Data rows
-          ...sortedDates.take(5).map((date) {
-            final data = widget.timeSeriesData[date]!;
-            return Container(
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-              decoration: BoxDecoration(
-                border: Border(
-                  top: BorderSide(color: Colors.grey[200]!),
-                ),
-              ),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 80,
-                    child: Text(
-                      DateFormat('dd/MM').format(date),
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  ),
-                  ...statusList.map((status) => Expanded(
-                    child: Center(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: colorMap[status]!.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          (data[status] ?? 0).toString(),
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: colorMap[status],
-                          ),
-                        ),
-                      ),
-                    ),
-                  )),
-                ],
-              ),
-            );
-          }),
-          if (sortedDates.length > 5)
-            Container(
-              padding: const EdgeInsets.all(8),
-              child: Text(
-                '... và ${sortedDates.length - 5} ngày khác',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -157,6 +35,20 @@ class _MultiLineChartWidgetState extends State<MultiLineChartWidget> {
     final sortedDates = widget.timeSeriesData.keys.toList()..sort();
     final labels = sortedDates.map((d) => DateFormat('MM/dd').format(d)).toList();
 
+    final statusList = ["Not Started", "In Progress", "Completed"];
+    
+    
+    final colorMap = {
+      "Not Started": const Color(0xFF6B7280), // Gray-500
+      "In Progress": const Color(0xFFF59E0B), // Amber-500
+      "Completed": const Color(0xFF10B981), // Emerald-500
+    };
+
+    final iconMap = {
+      "Not Started": Icons.pause_circle_outline,
+      "In Progress": Icons.access_time,
+      "Completed": Icons.check_circle,
+    };
 
     // Calculate total values for each status
     final totalValues = <String, int>{};
@@ -211,9 +103,9 @@ class _MultiLineChartWidgetState extends State<MultiLineChartWidget> {
 
     return Card(
       elevation: 4,
-      margin: const EdgeInsets.symmetric(vertical: 8),
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -241,9 +133,8 @@ class _MultiLineChartWidgetState extends State<MultiLineChartWidget> {
                     ],
                   ),
                 ),
-                // Total summary
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
                     color: Colors.blue.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
@@ -260,11 +151,10 @@ class _MultiLineChartWidgetState extends State<MultiLineChartWidget> {
             ),
             
             const SizedBox(height: 16),
-            
             // Legend with toggle functionality
             Wrap(
-              spacing: 16,
-              runSpacing: 8,
+              spacing: 12,
+              runSpacing: 6,
               children: statusList.map((status) {
                 final isHidden = hiddenLines.contains(status);
                 final color = colorMap[status]!;
@@ -330,9 +220,7 @@ class _MultiLineChartWidgetState extends State<MultiLineChartWidget> {
               }).toList(),
             ),
             
-            const SizedBox(height: 20),
-            
-            // Chart
+            const SizedBox(height: 16),
             SizedBox(
               height: 320,
               child: LineChart(
@@ -364,7 +252,7 @@ class _MultiLineChartWidgetState extends State<MultiLineChartWidget> {
                     leftTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
-                        reservedSize: 40,
+                        reservedSize: 35,
                         interval: yAxisMax > 10 ? (yAxisMax / 5).ceil().toDouble() : 1,
                         getTitlesWidget: (value, _) {
                           return Text(
@@ -407,6 +295,10 @@ class _MultiLineChartWidgetState extends State<MultiLineChartWidget> {
                     touchTooltipData: LineTouchTooltipData(
                       getTooltipColor: (touchedSpot) => Colors.black87,
                       tooltipPadding: const EdgeInsets.all(8),
+                      fitInsideHorizontally: true,
+                      fitInsideVertically: true,
+                      tooltipMargin: 16,
+                      maxContentWidth: 200,
                       getTooltipItems: (List<LineBarSpot> touchedSpots) {
                         return touchedSpots.map((LineBarSpot touchedSpot) {
                           final dateIndex = touchedSpot.x.toInt();
@@ -429,11 +321,6 @@ class _MultiLineChartWidgetState extends State<MultiLineChartWidget> {
                 ),
               ),
             ),
-            
-            const SizedBox(height: 16),
-            
-            // Data summary table
-            _buildDataTable(sortedDates, statusList, colorMap),
           ],
         ),
       ),
@@ -443,19 +330,19 @@ class _MultiLineChartWidgetState extends State<MultiLineChartWidget> {
   Widget _buildEmptyState() {
     return Card(
       elevation: 4,
-      margin: const EdgeInsets.symmetric(vertical: 8),
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       child: Container(
-        height: 200,
-        padding: const EdgeInsets.all(32),
+        height: 180,
+        padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               Icons.bar_chart,
-              size: 48,
+              size: 42,
               color: Colors.grey[400],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Text(
               "Không có dữ liệu ${widget.title}",
               style: TextStyle(
