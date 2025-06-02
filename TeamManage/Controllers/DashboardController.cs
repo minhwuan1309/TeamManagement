@@ -16,139 +16,70 @@ namespace TeamManage.Controllers
         private readonly ApplicationDbContext _context;
         public DashboardController(ApplicationDbContext context) => _context = context;
 
-        // ================ Lấy task trong project ================
-        [HttpGet("task/project/{projectId}")]
-        public async Task<IActionResult> GetDashboardTask([FromRoute] int projectId)
+
+        //Function
+        private List<object> BuildTrend<T>(IEnumerable<T> items, Func<T, DateTime> getDate, Func<T, ProcessStatus> getStatus)
         {
-            var project = await _context.Projects
-                .FirstOrDefaultAsync(p => p.Id == projectId && !p.IsDeleted);
-            if (project == null)
-                return NotFound($"Không tìm thấy project có ID {projectId}.");
-
-            var tasks = await _context.TaskItems
-                .Where(t => t.Module.ProjectId == projectId && !t.IsDeleted)
-                .ToListAsync();
-
-            if (tasks == null || !tasks.Any())
-                return NotFound($"Không tìm thấy task nào trong project có ID {projectId}.");
-
-            var result = new GetDashboardTaskDTO
-            {
-                TotalTask = tasks.Count,
-                TotalTaskInProgress = tasks.Count(t => t.Status == ProcessStatus.InProgress),
-                TotalTaskCompleted = tasks.Count(t => t.Status == ProcessStatus.Done),
-                TotalTaskNotStarted = tasks.Count(t => t.Status == ProcessStatus.None)
-            };
-
-            return Ok(new { scope = $"Task của project '{projectId}'", data = result });
-        }
-
-        [HttpGet("issue/project/{projectId}")]
-        public async Task<IActionResult> GetDashboardIssue([FromRoute] int projectId)
-        {
-            var project = await _context.Projects
-                .FirstOrDefaultAsync(p => p.Id == projectId && !p.IsDeleted);
-            if (project == null)
-                return NotFound($"Không tìm thấy project có ID {projectId}.");
-
-            var issues = await _context.Issues
-                .Include(i => i.TaskItem)
-                    .ThenInclude(t => t.Module)
-                .Where(i => i.TaskItem.Module.ProjectId == projectId && !i.IsDeleted)
-                .ToListAsync();
-
-            if (issues == null || !issues.Any())
-                return NotFound($"Không tìm thấy issue nào trong project có ID {projectId}.");
-
-            var result = new GetDashboardIssueDTO
-            {
-                TotalIssue = issues.Count,
-                TotalIssueInProgress = issues.Count(i => i.Status == ProcessStatus.InProgress),
-                TotalIssueCompleted = issues.Count(i => i.Status == ProcessStatus.Done),
-                TotalIssueNotStarted = issues.Count(i => i.Status == ProcessStatus.None)
-            };
-
-            return Ok(new { scope = $"Issue của project '{projectId}'", data = result });
-        }
-
-
-        // ================ Lấy thống kế toàn bộ project ================
-        [HttpGet("task/all")]
-        public async Task<IActionResult> GetDashboardTaskAll()
-        {
-            var tasks = await _context.TaskItems
-                .Include(t => t.Module)
-                .ToListAsync();
-
-            var result = new GetDashboardTaskDTO
-            {
-                TotalTask = tasks.Count,
-                TotalTaskInProgress = tasks.Count(t => t.Status == ProcessStatus.InProgress),
-                TotalTaskCompleted = tasks.Count(t => t.Status == ProcessStatus.Done),
-                TotalTaskNotStarted = tasks.Count(t => t.Status == ProcessStatus.None)
-            };
-
-            return Ok(new { scope = "Task of all Project", data = result });
-        }
-        [HttpGet("issue/all")]
-        public async Task<IActionResult> GetDashboardIssueAll()
-        {
-            var issues = await _context.Issues
-                .Include(i => i.TaskItem)
-                    .ThenInclude(t => t.Module)
-                .ToListAsync();
-
-            var result = new GetDashboardIssueDTO
-            {
-                TotalIssue = issues.Count,
-                TotalIssueInProgress = issues.Count(i => i.Status == ProcessStatus.InProgress),
-                TotalIssueCompleted = issues.Count(i => i.Status == ProcessStatus.Done),
-                TotalIssueNotStarted = issues.Count(i => i.Status == ProcessStatus.None)
-            };
-
-            return Ok(new { scope = "Issue of all-project", data = result });
-        }
-
-        // Lấy theo timeline
-
-        [HttpGet("issue/trend")]
-        public async Task<IActionResult> GetIssueTrend()
-        {
-            var issues = await _context.Issues
-                .Where(i => !i.IsDeleted && i.CreatedAt != null)
-                .ToListAsync();
-
-            var trend = issues
-                .GroupBy(i => i.CreatedAt!.Date)
+            return items
+                .GroupBy(getDate)
                 .OrderBy(g => g.Key)
                 .Select(g => new
                 {
-                    Date = g.Key.ToString("yyyy-MM-dd"),
-                    NotStarted = g.Count(i => i.Status == ProcessStatus.None),
-                    InProgress = g.Count(i => i.Status == ProcessStatus.InProgress),
-                    Completed = g.Count(i => i.Status == ProcessStatus.Done)
-                });
+                    date = g.Key.ToString("yyyy-MM-dd"),
+                    NotStarted = g.Count(i => getStatus(i) == ProcessStatus.None),
+                    InProgress = g.Count(i => getStatus(i) == ProcessStatus.InProgress),
+                    Completed = g.Count(i => getStatus(i) == ProcessStatus.Done)
+                })
+                .Cast<object>()
+                .ToList();
+        }
+ 
+        
+        // Lấy theo timeline
+        [HttpGet("issue/trend")]
+        public async Task<IActionResult> GetIssueTrend([FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate)
+        {
+            var query = _context.Issues
+                .Where(i => !i.IsDeleted && i.CreatedAt != null);
 
+            if (startDate.HasValue)
+                query = query.Where(i => i.CreatedAt >= startDate.Value);
+
+            if (endDate.HasValue)
+            {
+                var nextDay = endDate.Value.Date.AddDays(1); 
+                query = query.Where(i => i.CreatedAt < nextDay);
+            }
+
+            var issues = await query.ToListAsync();
+
+            var trend = BuildTrend<Issue>(
+                issues,
+                getDate: i => i.CreatedAt,
+                getStatus: i => i.Status
+            );
             return Ok(trend);
         }
         
         [HttpGet("task/trend")]
-        public async Task<IActionResult> GetTaskTrend()
+        public async Task<IActionResult> GetTaskTrend([FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate)
         {
-            var tasks = await _context.TaskItems
-                .Where(t => !t.IsDeleted && t.CreatedAt != null)
-                .ToListAsync();
+            var query = _context.TaskItems
+                .Where(t => !t.IsDeleted && t.StartDate != null && t.EndDate != null);
 
-            var trend = tasks
-                .GroupBy(t => t.CreatedAt!.Date)
-                .OrderBy(g => g.Key)
-                .Select(g => new
-                {
-                    Date = g.Key.ToString("yyyy-MM-dd"),
-                    NotStarted = g.Count(t => t.Status == ProcessStatus.None),
-                    InProgress = g.Count(t => t.Status == ProcessStatus.InProgress),
-                    Completed = g.Count(t => t.Status == ProcessStatus.Done)
-                });
+            if (startDate.HasValue)
+                query = query.Where(t => t.EndDate >= startDate.Value);
+
+            if (endDate.HasValue)
+                query = query.Where(t => t.StartDate <= endDate.Value);
+
+            var tasks = await query.ToListAsync();
+
+            var trend = BuildTrend<TaskItem>(
+                tasks,
+                getDate: t => t.StartDate!.Value,
+                getStatus: t => t.Status
+            );
 
             return Ok(trend);
         }

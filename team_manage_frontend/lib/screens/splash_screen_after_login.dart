@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:team_manage_frontend/screens/modules/module_detail_page.dart';
+
 class SplashScreenAfterLogin extends StatefulWidget {
   const SplashScreenAfterLogin({Key? key}) : super(key: key);
 
@@ -23,8 +25,7 @@ class _SplashScreenAfterLoginState extends State<SplashScreenAfterLogin>
 
   @override
   void initState() {
-    super.initState();
-    
+    super.initState();    
     _mainController = AnimationController(
       duration: const Duration(milliseconds: 2000),
       vsync: this,

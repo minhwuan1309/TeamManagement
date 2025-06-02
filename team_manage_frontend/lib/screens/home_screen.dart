@@ -1,11 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:team_manage_frontend/api_service.dart';
 import 'package:team_manage_frontend/layouts/common_layout.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:team_manage_frontend/screens/tasks/chart_widget.dart';
+import 'package:team_manage_frontend/screens/dashboard/chart_widget.dart';
+import 'package:team_manage_frontend/screens/dashboard/trend_data_table.dart';
 import 'package:team_manage_frontend/utils/env.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -20,6 +22,12 @@ class _HomeScreenState extends State<HomeScreen> {
   Map<DateTime, Map<String, int>> taskTrend = {};
   Map<DateTime, Map<String, int>> issueTrend = {};
 
+  String selectedType = 'Task';
+  DateTime? startDate;
+  DateTime? endDate;
+  bool isLoading = true;
+  Map<DateTime, Map<String, int>> timeSeriesData = {};
+
 
   final String metabaseUrl = metabasePublicUrl;
 
@@ -27,38 +35,46 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    fetchData();
     loadUserAndStats();
   }
 
-  Future<Map<String, dynamic>> fetchDashboardTaskAll() async {
+  Future<void> fetchData() async {
+    setState(() {
+      isLoading = true;
+    });
+
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
 
-    final response = await http.get(
-      Uri.parse('$baseUrl/dashboard/task/all'),
-      headers: {'Authorization': 'Bearer $token'},
-    );
+    String url = '$baseUrl/dashboard/${selectedType.toLowerCase()}/trend';
 
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception('Failed to load dashboard task');
+    if (startDate != null && endDate != null){
+      final sdf = DateFormat('yyyy-MM-dd');
+      url += '?startDate=${sdf.format(startDate!)}&endDate=${sdf.format(endDate!)}';
     }
-  }
 
-  Future<Map<String, dynamic>> fetchDashboardIssueAll() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
+    final response = await http.get(Uri.parse(url), headers: {'Authorization': 'Bearer $token'});
 
-    final response = await http.get(
-      Uri.parse('$baseUrl/dashboard/issue/all'),
-      headers: {'Authorization': 'Bearer $token'},
-    );
+    if(response.statusCode == 200){
+      final raw = jsonDecode(response.body);
+      final List<dynamic> data = raw[r'$values'] ?? [];
+      final parsed = <DateTime, Map<String, int>>{};
 
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception('Failed to load dashboard issue');
+      for (var item in data){
+        final date = DateTime.parse(item['date']);
+        parsed[date] = {
+          "Not Started": item['notStarted'] ?? 0,
+          "In Progress": item['inProgress'] ?? 0,
+          "Completed": item['completed'] ?? 0,
+        };
+      }
+      setState(() {
+        timeSeriesData = parsed;
+        isLoading = false;
+      });
+    }else{
+      print('Lỗi fetching data: ${response.statusCode}');
     }
   }
 
@@ -141,10 +157,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-
-
-
-
   @override
   Widget build(BuildContext context) {
     return CommonLayout(
@@ -155,15 +167,65 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 12),
-            MultiLineChartWidget(
-              title: "Task",
-              timeSeriesData: taskTrend,
+            Row(
+              children: [
+                DropdownButton<String>(
+                  value: selectedType,
+                  items: ['Task', 'Issue']
+                      .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                      .toList(),
+                  onChanged: (val) {
+                    setState(() {
+                      selectedType = val!;
+                    });
+                    fetchData(); // gọi API khi đổi loại
+                  },
+                ),
+                const SizedBox(width: 16),
+                ElevatedButton(
+                  onPressed: () async {
+                    final picked = await showDateRangePicker(
+                      context: context,
+                      firstDate: DateTime(2023),
+                      lastDate: DateTime.now(),
+                    );
+                    if (picked != null) {
+                      setState(() {
+                        startDate = picked.start;
+                        endDate = picked.end;
+                      });
+                      fetchData();
+                    }
+                  },
+                  child: Text(
+                    startDate != null && endDate != null
+                        ? '${DateFormat('dd/MM/yyyy').format(startDate!)} - ${DateFormat('dd/MM/yyyy').format(endDate!)}'
+                        : 'Chọn khoảng ngày',
+                  ),
+                ),
+                const SizedBox(width: 12),
+                TextButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      startDate = null;
+                      endDate = null;
+                    });
+                    fetchData(); // gọi API để reset khoảng ngày
+                  },
+                  icon: const Icon(Icons.refresh, size: 18), 
+                  label: const Text('Reset bộ lọc'),
+                )
+              ],
             ),
+
             const SizedBox(height: 16),
-            MultiLineChartWidget(
-              title: "Issue",
-              timeSeriesData: issueTrend,
-            ),
+            isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : MultiLineChartWidget(
+                    title: selectedType,
+                    timeSeriesData: timeSeriesData,
+                  ),
+                  TrendDataTable(timeSeriesData: timeSeriesData)
           ],
         ),
       ),
