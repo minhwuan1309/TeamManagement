@@ -75,7 +75,7 @@ Future<void> handleLogin() async {
           child: Center(
             child: SingleChildScrollView(
               child: Padding(
-                padding: const EdgeInsets.all(24.0),
+                padding: EdgeInsets.all(isSmallScreen ? 16 : 24),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -85,8 +85,12 @@ Future<void> handleLogin() async {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Container(
-                        width: isSmallScreen ? double.infinity : 400,
-                        padding: const EdgeInsets.all(32),
+                        width: isSmallScreen 
+                          ? double.infinity 
+                          : screenWidth < 1024 
+                              ? 500 
+                              : 400,
+                        padding: EdgeInsets.all(isSmallScreen ? 24 : 32),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [

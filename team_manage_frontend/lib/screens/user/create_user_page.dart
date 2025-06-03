@@ -62,15 +62,23 @@ class _CreateUserPageState extends State<CreateUserPage> {
   @override
   Widget build(BuildContext context) {
     return CommonLayout(
-      title: 'Tạo người dùng mới',
-      child: Container(
-        decoration: BoxDecoration(color: Colors.grey[50]),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Center(
-            // Wrap the entire content in SingleChildScrollView to make it scrollable
-            child: SingleChildScrollView(
-              child: Card(
+    title: 'Tạo người dùng mới',
+    child: Container(
+      decoration: BoxDecoration(color: Colors.grey[50]),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          bool isWideScreen = constraints.maxWidth > 800;
+          bool isMediumScreen = constraints.maxWidth > 600;
+          
+          return Padding(
+            padding: EdgeInsets.all(isWideScreen ? 40 : (isMediumScreen ? 24 : 16)),
+            child: Center(
+              child: SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: isWideScreen ? 600 : (isMediumScreen ? 500 : double.infinity),
+                  ),
+                  child: Card(
                 elevation: 6,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
@@ -81,7 +89,7 @@ class _CreateUserPageState extends State<CreateUserPage> {
                     // Header
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(24),
+                      padding: EdgeInsets.all(isWideScreen ? 32 : (isMediumScreen ? 24 : 20)),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [Colors.blue.shade700, Colors.blue.shade500],
@@ -95,10 +103,9 @@ class _CreateUserPageState extends State<CreateUserPage> {
                       ),
                       child: Column(
                         children: [
-                          // Icon
                           Container(
-                            width: 80,
-                            height: 80,
+                            width: isWideScreen ? 90 : (isMediumScreen ? 80 : 70),
+                            height: isWideScreen ? 90 : (isMediumScreen ? 80 : 70),
                             decoration: BoxDecoration(
                               color: Colors.white.withOpacity(0.2),
                               shape: BoxShape.circle,
@@ -107,18 +114,17 @@ class _CreateUserPageState extends State<CreateUserPage> {
                                 width: 2,
                               ),
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.person_add_rounded,
-                              size: 40,
+                              size: isWideScreen ? 45 : (isMediumScreen ? 40 : 35),
                               color: Colors.white,
                             ),
                           ),
                           const SizedBox(height: 16),
-                          // Title
-                          const Text(
+                          Text(
                             'Thêm thành viên mới',
                             style: TextStyle(
-                              fontSize: 24,
+                              fontSize: isWideScreen ? 28 : (isMediumScreen ? 24 : 22),
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
                             ),
@@ -127,9 +133,10 @@ class _CreateUserPageState extends State<CreateUserPage> {
                           Text(
                             'Vui lòng điền đầy đủ thông tin bên dưới',
                             style: TextStyle(
-                              fontSize: 14,
+                              fontSize: isWideScreen ? 16 : (isMediumScreen ? 14 : 13),
                               color: Colors.white.withOpacity(0.9),
                             ),
+                            textAlign: TextAlign.center,
                           ),
                         ],
                       ),
@@ -137,7 +144,7 @@ class _CreateUserPageState extends State<CreateUserPage> {
 
                     // Form
                     Container(
-                      padding: const EdgeInsets.all(24),
+                      padding: EdgeInsets.all(isWideScreen ? 32 : (isMediumScreen ? 24 : 20)),
                       constraints: const BoxConstraints(maxWidth: 600),
                       child: Form(
                         key: _formKey,
@@ -207,7 +214,8 @@ class _CreateUserPageState extends State<CreateUserPage> {
                                           ? 'Không được để trống'
                                           : null,
                             ),
-                            const SizedBox(height: 20),
+                            SizedBox(height: isWideScreen ? 24 : (isMediumScreen ? 20 : 16)),
+
 
                             // Email Field
                             TextFormField(
@@ -259,7 +267,7 @@ class _CreateUserPageState extends State<CreateUserPage> {
                                 return null;
                               },
                             ),
-                            const SizedBox(height: 20),
+                            SizedBox(height: isWideScreen ? 24 : (isMediumScreen ? 20 : 16)),
 
                             // Phone Field
                             TextFormField(
@@ -303,7 +311,7 @@ class _CreateUserPageState extends State<CreateUserPage> {
                               ),
                               keyboardType: TextInputType.phone,
                             ),
-                            const SizedBox(height: 20),
+                            SizedBox(height: isWideScreen ? 24 : (isMediumScreen ? 20 : 16)),
 
                             // Password Field
                             TextFormField(
@@ -546,8 +554,8 @@ class _CreateUserPageState extends State<CreateUserPage> {
                                       }
                                     },
                                     style: ElevatedButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 16,
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: isWideScreen ? 18 : (isMediumScreen ? 16 : 14),
                                       ),
                                       backgroundColor: Colors.blue.shade700,
                                       foregroundColor: Colors.white,
@@ -557,15 +565,14 @@ class _CreateUserPageState extends State<CreateUserPage> {
                                       elevation: 2,
                                     ),
                                     child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
+                                      mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
                                         const Icon(Icons.person_add),
                                         const SizedBox(width: 8),
-                                        const Text(
+                                        Text(
                                           'Tạo tài khoản',
                                           style: TextStyle(
-                                            fontSize: 16,
+                                            fontSize: isWideScreen ? 18 : (isMediumScreen ? 16 : 15),
                                             fontWeight: FontWeight.bold,
                                           ),
                                         ),
@@ -607,7 +614,11 @@ class _CreateUserPageState extends State<CreateUserPage> {
             ),
           ),
         ),
+      );
+        },
       ),
+    ),
     );
   }
 }
+

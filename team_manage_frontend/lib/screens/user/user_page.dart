@@ -425,17 +425,21 @@ class _UserPageState extends State<UserPage> {
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: 'Tìm kiếm theo tên, email, số điện thoại...',
-                    prefixIcon: const Icon(Icons.search),
-                    suffixIcon:
-                        searchQuery.isNotEmpty
-                            ? IconButton(
+          
+          // Responsive search field
+          LayoutBuilder(
+            builder: (context, constraints) {
+              return Column(
+                children: [
+                  TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: constraints.maxWidth < 600 
+                          ? 'Tìm kiếm...' 
+                          : 'Tìm kiếm theo tên, email, số điện thoại...',
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: searchQuery.isNotEmpty
+                          ? IconButton(
                               icon: const Icon(Icons.clear),
                               onPressed: () {
                                 _searchController.clear();
@@ -445,96 +449,129 @@ class _UserPageState extends State<UserPage> {
                                 });
                               },
                             )
-                            : null,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey[300]!),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey[300]!),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
-                        color: Theme.of(context).primaryColor,
+                          : null,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
                       ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Theme.of(context).primaryColor),
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    filled: true,
-                    fillColor: Colors.white,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                    onChanged: (value) {
+                      setState(() {
+                        searchQuery = value;
+                        applyFilter();
+                      });
+                    },
                   ),
-                  onChanged: (value) {
-                    setState(() {
-                      searchQuery = value;
-                      applyFilter();
-                    });
-                  },
-                ),
-              ),
-            ],
-          ),
-          Row(
-            children: [
-              const SizedBox(width: 16),
-              // Filter toggle buttons
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey[300]!),
-                ),
-                child: Row(
-                  children: [
-                    // Blocked toggle
-                    FilterChip(
-                      label: Text(
-                        'Bị khoá',
-                        style: TextStyle(
-                          color:
-                              showBlockedOnly ? Colors.white : Colors.black87,
+                  const SizedBox(height: 12),
+                  
+                  // Responsive filter chips
+                  constraints.maxWidth < 600
+                      ? Column(
+                          children: [
+                            SizedBox(
+                              width: double.infinity,
+                              child: FilterChip(
+                                label: Text(
+                                  'Bị khoá',
+                                  style: TextStyle(
+                                    color: showBlockedOnly ? Colors.white : Colors.black87,
+                                  ),
+                                ),
+                                selected: showBlockedOnly,
+                                checkmarkColor: Colors.white,
+                                selectedColor: Theme.of(context).primaryColor,
+                                backgroundColor: Colors.white,
+                                onSelected: (value) {
+                                  setState(() {
+                                    showBlockedOnly = value;
+                                    if (value) showDeletedOnly = false;
+                                    applyFilter();
+                                  });
+                                },
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            SizedBox(
+                              width: double.infinity,
+                              child: FilterChip(
+                                label: Text(
+                                  'Đã xoá',
+                                  style: TextStyle(
+                                    color: showDeletedOnly ? Colors.white : Colors.black87,
+                                  ),
+                                ),
+                                selected: showDeletedOnly,
+                                checkmarkColor: Colors.white,
+                                selectedColor: Colors.red,
+                                backgroundColor: Colors.white,
+                                onSelected: (value) {
+                                  setState(() {
+                                    showDeletedOnly = value;
+                                    if (value) showBlockedOnly = false;
+                                    applyFilter();
+                                  });
+                                },
+                              ),
+                            ),
+                          ],
+                        )
+                      : Row(
+                          children: [
+                            FilterChip(
+                              label: Text(
+                                'Bị khoá',
+                                style: TextStyle(
+                                  color: showBlockedOnly ? Colors.white : Colors.black87,
+                                ),
+                              ),
+                              selected: showBlockedOnly,
+                              checkmarkColor: Colors.white,
+                              selectedColor: Theme.of(context).primaryColor,
+                              backgroundColor: Colors.white,
+                              onSelected: (value) {
+                                setState(() {
+                                  showBlockedOnly = value;
+                                  if (value) showDeletedOnly = false;
+                                  applyFilter();
+                                });
+                              },
+                            ),
+                            const SizedBox(width: 12),
+                            FilterChip(
+                              label: Text(
+                                'Đã xoá',
+                                style: TextStyle(
+                                  color: showDeletedOnly ? Colors.white : Colors.black87,
+                                ),
+                              ),
+                              selected: showDeletedOnly,
+                              checkmarkColor: Colors.white,
+                              selectedColor: Colors.red,
+                              backgroundColor: Colors.white,
+                              onSelected: (value) {
+                                setState(() {
+                                  showDeletedOnly = value;
+                                  if (value) showBlockedOnly = false;
+                                  applyFilter();
+                                });
+                              },
+                            ),
+                          ],
                         ),
-                      ),
-                      selected: showBlockedOnly,
-                      checkmarkColor: Colors.white,
-                      selectedColor: Theme.of(context).primaryColor,
-                      backgroundColor: Colors.transparent,
-                      onSelected: (value) {
-                        setState(() {
-                          showBlockedOnly = value;
-                          if (value) showDeletedOnly = false;
-                          applyFilter();
-                        });
-                      },
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                    ),
-                    const SizedBox(width: 8),
-                    // Deleted toggle
-                    FilterChip(
-                      label: Text(
-                        'Đã xoá',
-                        style: TextStyle(
-                          color:
-                              showDeletedOnly ? Colors.white : Colors.black87,
-                        ),
-                      ),
-                      selected: showDeletedOnly,
-                      checkmarkColor: Colors.white,
-                      selectedColor: Colors.red,
-                      backgroundColor: Colors.transparent,
-                      onSelected: (value) {
-                        setState(() {
-                          showDeletedOnly = value;
-                          if (value) showBlockedOnly = false;
-                          applyFilter();
-                        });
-                      },
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+                ],
+              );
+            },
           ),
         ],
       ),
@@ -557,33 +594,24 @@ class _UserPageState extends State<UserPage> {
           children: [
             Row(
               children: [
-                Hero(
-                  tag: 'avatar-${user['id']}',
-                  child: CircleAvatar(
-                    radius: 28,
-                    backgroundColor: Theme.of(
-                      context,
-                    ).primaryColor.withOpacity(0.2),
-                    backgroundImage:
-                        (avatar != null && avatar.isNotEmpty)
-                            ? NetworkImage(avatar)
-                            : null,
-                    child:
-                        (avatar == null || avatar.isEmpty)
-                            ? Text(
-                              (user['fullName'] ?? '?')
-                                  .substring(0, 1)
-                                  .toUpperCase(),
-                              style: TextStyle(
-                                color: Theme.of(context).primaryColor,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                              ),
-                            )
-                            : null,
-                  ),
+                CircleAvatar(
+                  radius: 24,
+                  backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
+                  backgroundImage: (avatar != null && avatar.isNotEmpty)
+                      ? NetworkImage(avatar)
+                      : null,
+                  child: (avatar == null || avatar.isEmpty)
+                      ? Text(
+                          (user['fullName'] ?? '?').substring(0, 1).toUpperCase(),
+                          style: TextStyle(
+                            color: Theme.of(context).primaryColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        )
+                      : null,
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -591,43 +619,21 @@ class _UserPageState extends State<UserPage> {
                       Text(
                         user['fullName'] ?? '',
                         style: const TextStyle(
-                          fontSize: 18,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
                       Text(
                         user['email'] ?? '',
-                        style: TextStyle(color: Colors.grey[600]),
-                      ),
-                      const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 14,
                         ),
-                        decoration: BoxDecoration(
-                          color:
-                              isDeleted
-                                  ? Colors.red.withOpacity(0.1)
-                                  : (isActive
-                                      ? Colors.green.withOpacity(0.1)
-                                      : Colors.orange.withOpacity(0.1)),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          isDeleted
-                              ? 'Đã xoá'
-                              : (isActive ? 'Hoạt động' : 'Bị khoá'),
-                          style: TextStyle(
-                            color:
-                                isDeleted
-                                    ? Colors.red
-                                    : (isActive ? Colors.green : Colors.orange),
-                            fontWeight: FontWeight.w500,
-                            fontSize: 12,
-                          ),
-                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
@@ -651,11 +657,7 @@ class _UserPageState extends State<UserPage> {
                           value: 'restore',
                           child: Row(
                             children: [
-                              Icon(
-                                Icons.restore,
-                                color: Colors.green,
-                                size: 20,
-                              ),
+                              Icon(Icons.restore, color: Colors.green, size: 20),
                               SizedBox(width: 8),
                               Text('Khôi phục'),
                             ],
@@ -665,11 +667,7 @@ class _UserPageState extends State<UserPage> {
                           value: 'hardDelete',
                           child: Row(
                             children: [
-                              Icon(
-                                Icons.delete_forever,
-                                color: Colors.red,
-                                size: 20,
-                              ),
+                              Icon(Icons.delete_forever, color: Colors.red, size: 20),
                               SizedBox(width: 8),
                               Text('Xoá vĩnh viễn'),
                             ],
@@ -706,11 +704,7 @@ class _UserPageState extends State<UserPage> {
                           value: 'update_role',
                           child: Row(
                             children: [
-                              Icon(
-                                Icons.manage_accounts,
-                                color: Colors.blue,
-                                size: 20,
-                              ),
+                              Icon(Icons.manage_accounts, color: Colors.blue, size: 20),
                               SizedBox(width: 8),
                               Text('Cập nhật vai trò'),
                             ],
@@ -722,23 +716,82 @@ class _UserPageState extends State<UserPage> {
                 ),
               ],
             ),
-            const Divider(height: 24),
-            buildInfoRow(
-              Icons.phone,
-              'Điện thoại',
-              user['phone'] ?? 'Chưa cập nhật',
+            const SizedBox(height: 12),
+            
+            // Status and role chips
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isDeleted
+                        ? Colors.red.withOpacity(0.1)
+                        : (isActive
+                            ? Colors.green.withOpacity(0.1)
+                            : Colors.orange.withOpacity(0.1)),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    isDeleted ? 'Đã xoá' : (isActive ? 'Hoạt động' : 'Bị khoá'),
+                    style: TextStyle(
+                      color: isDeleted
+                          ? Colors.red
+                          : (isActive ? Colors.green : Colors.orange),
+                      fontWeight: FontWeight.w500,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: getRoleColor(user['role']).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    getRoleName(user['role']),
+                    style: TextStyle(
+                      color: getRoleColor(user['role']),
+                      fontWeight: FontWeight.w500,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
             ),
-            buildInfoRow(
-              Icons.badge,
-              'Vai trò',
-              getRoleName(user['role']),
-              getRoleColor(user['role']),
-            ),
+            
+            if (user['phone'] != null && user['phone'].isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Icon(
+                    Icons.phone,
+                    size: 16,
+                    color: Colors.grey[600],
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      user['phone'],
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 14,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
     );
   }
+
 
   Widget buildInfoRow(
     IconData icon,
@@ -788,243 +841,204 @@ class _UserPageState extends State<UserPage> {
 
   Widget buildDesktopTable() {
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      margin: const EdgeInsets.all(16),
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: DataTable(
-            columnSpacing: 20,
-            horizontalMargin: 20,
-            headingTextStyle: const TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).primaryColor,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(16),
+              ),
             ),
-            headingRowColor: MaterialStateProperty.all(
-              Theme.of(context).primaryColor,
+            child: Row(
+              children: const [
+                Expanded(flex: 2, child: Text('Thông tin', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                Expanded(flex: 2, child: Text('Email', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                Expanded(flex: 1, child: Text('Vai trò', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                Expanded(flex: 1, child: Text('Trạng thái', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                Expanded(flex: 1, child: Text('Hành động', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+              ],
             ),
-            dataRowColor: MaterialStateProperty.resolveWith<Color?>((
-              Set<MaterialState> states,
-            ) {
-              if (states.contains(MaterialState.selected)) {
-                return Theme.of(context).colorScheme.primary.withOpacity(0.08);
-              }
-              if (states.contains(MaterialState.hovered)) {
-                return Theme.of(context).colorScheme.primary.withOpacity(0.04);
-              }
-              return null;
-            }),
-            border: TableBorder(borderRadius: BorderRadius.circular(12)),
-            columns: const [
-              DataColumn(
-                label: SizedBox(
-                  width: 150,
-                  child: Text('Họ tên', textAlign: TextAlign.center),
-                ),
-              ),
-              DataColumn(
-                label: SizedBox(
-                  width: 200,
-                  child: Text('Email', textAlign: TextAlign.center),
-                ),
-              ),
-              DataColumn(
-                label: SizedBox(
-                  width: 120,
-                  child: Text('Điện thoại', textAlign: TextAlign.center),
-                ),
-              ),
-              DataColumn(
-                label: SizedBox(
-                  width: 100,
-                  child: Text('Vai trò', textAlign: TextAlign.center),
-                ),
-              ),
-              DataColumn(
-                label: SizedBox(
-                  width: 120,
-                  child: Text('Trạng thái', textAlign: TextAlign.center),
-                ),
-              ),
-              DataColumn(
-                label: SizedBox(
-                  width: 150,
-                  child: Text('Hành động', textAlign: TextAlign.center),
-                ),
-              ),
-            ],
-            rows:
-                users.map((user) {
-                  final bool isActive = user['isActive'] ?? true;
-                  final bool isDeleted = user['isDeleted'] ?? false;
-                  final String? avatar = user['avatar'];
-
-                  return DataRow(
-                    cells: [
-                      DataCell(
-                        Row(
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: users.length,
+              itemBuilder: (context, index) {
+                final user = users[index];
+                final bool isActive = user['isActive'] ?? true;
+                final bool isDeleted = user['isDeleted'] ?? false;
+                final String? avatar = user['avatar'];
+                
+                return Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(color: Colors.grey[200]!),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: Row(
                           children: [
                             CircleAvatar(
                               radius: 16,
-                              backgroundColor: Theme.of(
-                                context,
-                              ).primaryColor.withOpacity(0.2),
-                              backgroundImage:
-                                  (avatar != null && avatar.isNotEmpty)
-                                      ? NetworkImage(avatar)
-                                      : null,
-                              child:
-                                  (avatar == null || avatar.isEmpty)
-                                      ? Text(
-                                        (user['fullName'] ?? '?')
-                                            .substring(0, 1)
-                                            .toUpperCase(),
-                                        style: TextStyle(
-                                          color: Theme.of(context).primaryColor,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 12,
-                                        ),
-                                      )
-                                      : null,
+                              backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
+                              backgroundImage: (avatar != null && avatar.isNotEmpty)
+                                  ? NetworkImage(avatar)
+                                  : null,
+                              child: (avatar == null || avatar.isEmpty)
+                                  ? Text(
+                                      (user['fullName'] ?? '?').substring(0, 1).toUpperCase(),
+                                      style: TextStyle(
+                                        color: Theme.of(context).primaryColor,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                      ),
+                                    )
+                                  : null,
                             ),
                             const SizedBox(width: 8),
-                            Text(
-                              user['fullName'] ?? '',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w500,
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    user['fullName'] ?? '',
+                                    style: const TextStyle(fontWeight: FontWeight.w500),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  if (user['phone'] != null && user['phone'].isNotEmpty)
+                                    Text(
+                                      user['phone'],
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey[600],
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                ],
                               ),
                             ),
                           ],
                         ),
                       ),
-                      DataCell(Text(user['email'] ?? '')),
-                      DataCell(Text(user['phone'] ?? 'Chưa cập nhật')),
-                      DataCell(
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          user['email'] ?? '',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Expanded(
+                        flex: 1,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
                             color: getRoleColor(user['role']).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
                             getRoleName(user['role']),
                             style: TextStyle(
                               color: getRoleColor(user['role']),
                               fontWeight: FontWeight.w500,
+                              fontSize: 12,
                             ),
+                            textAlign: TextAlign.center,
                           ),
                         ),
                       ),
-                      // Cột: Trạng thái
-                      DataCell(
-                        Center(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
+                      Expanded(
+                        flex: 1,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: isDeleted
+                                ? Colors.red.withOpacity(0.1)
+                                : (isActive
+                                    ? Colors.green.withOpacity(0.1)
+                                    : Colors.orange.withOpacity(0.1)),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            isDeleted ? 'Đã xoá' : (isActive ? 'Hoạt động' : 'Bị khoá'),
+                            style: TextStyle(
+                              color: isDeleted
+                                  ? Colors.red
+                                  : (isActive ? Colors.green : Colors.orange),
+                              fontWeight: FontWeight.w500,
+                              fontSize: 12,
                             ),
-                            decoration: BoxDecoration(
-                              color:
-                                  isDeleted
-                                      ? Colors.red.withOpacity(0.1)
-                                      : (isActive
-                                          ? Colors.green.withOpacity(0.1)
-                                          : Colors.orange.withOpacity(0.1)),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              isDeleted
-                                  ? 'Đã xoá'
-                                  : (isActive ? 'Hoạt động' : 'Bị khoá'),
-                              style: TextStyle(
-                                color:
-                                    isDeleted
-                                        ? Colors.red
-                                        : (isActive
-                                            ? Colors.green
-                                            : Colors.orange),
-                                fontWeight: FontWeight.w500,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
+                            textAlign: TextAlign.center,
                           ),
                         ),
                       ),
-
-                      // Cột: Hành động
-                      DataCell(
-                        Row(
+                      Expanded(
+                        flex: 1,
+                        child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children:
-                              isDeleted
-                                  ? [
-                                    IconButton(
-                                      icon: const Icon(
-                                        Icons.restore,
-                                        color: Colors.green,
-                                      ),
-                                      tooltip: 'Khôi phục người dùng',
-                                      onPressed: () => restoreUser(user['id']),
+                          children: isDeleted
+                              ? [
+                                  IconButton(
+                                    icon: const Icon(Icons.restore, color: Colors.green, size: 18),
+                                    tooltip: 'Khôi phục',
+                                    onPressed: () => restoreUser(user['id']),
+                                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete_forever, color: Colors.red, size: 18),
+                                    tooltip: 'Xoá vĩnh viễn',
+                                    onPressed: () => hardDeleteUser(user['id']),
+                                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                  ),
+                                ]
+                              : [
+                                  IconButton(
+                                    icon: Icon(
+                                      isActive ? Icons.block : Icons.check_circle,
+                                      color: isActive ? Colors.red : Colors.green,
+                                      size: 18,
                                     ),
-                                    IconButton(
-                                      icon: const Icon(
-                                        Icons.delete_forever,
-                                        color: Colors.red,
-                                      ),
-                                      tooltip: 'Xoá vĩnh viễn',
-                                      onPressed:
-                                          () => hardDeleteUser(user['id']),
-                                    ),
-                                  ]
-                                  : [
-                                    IconButton(
-                                      icon: Icon(
-                                        isActive
-                                            ? Icons.block
-                                            : Icons.check_circle,
-                                        color:
-                                            isActive
-                                                ? Colors.red
-                                                : Colors.green,
-                                      ),
-                                      tooltip:
-                                          isActive
-                                              ? 'Khoá người dùng'
-                                              : 'Mở khoá người dùng',
-                                      onPressed: () => toggleBlock(user['id']),
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(
-                                        Icons.delete,
-                                        color: Colors.red,
-                                      ),
-                                      tooltip: 'Xoá người dùng',
-                                      onPressed: () => deleteUser(user['id']),
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(
-                                        Icons.manage_accounts,
-                                        color: Colors.blue,
-                                      ),
-                                      tooltip: 'Cập nhật vai trò',
-                                      onPressed: () => showRoleDialog(user),
-                                    ),
-                                  ],
+                                    tooltip: isActive ? 'Khoá' : 'Mở khoá',
+                                    onPressed: () => toggleBlock(user['id']),
+                                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete, color: Colors.red, size: 18),
+                                    tooltip: 'Xoá',
+                                    onPressed: () => deleteUser(user['id']),
+                                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.manage_accounts, color: Colors.blue, size: 18),
+                                    tooltip: 'Cập nhật vai trò',
+                                    onPressed: () => showRoleDialog(user),
+                                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                  ),
+                                ],
                         ),
                       ),
                     ],
-                  );
-                }).toList(),
+                  ),
+                );
+              },
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
+
 
   String getRoleName(dynamic role) {
     switch (role) {
@@ -1043,34 +1057,36 @@ class _UserPageState extends State<UserPage> {
   Widget build(BuildContext context) {
     return CommonLayout(
       title: 'Quản lý người dùng',
-      child: Container(
-        decoration: BoxDecoration(color: Colors.grey[50]),
-        child:
-            isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : Column(
-                  children: [
-                    buildFilterSection(),
-                    Expanded(
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          return constraints.maxWidth < 600
-                              ? ListView(
-                                children: users.map(buildMobileCard).toList(),
-                              )
-                              : buildDesktopTable();
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => Navigator.pushNamed(context, '/user/create'),
-        child: const Icon(Icons.add),
         tooltip: 'Tạo người dùng mới',
         backgroundColor: Colors.blue.shade700,
         elevation: 4,
+        child: const Icon(Icons.add),
+      ),
+      child: Container(
+        decoration: BoxDecoration(color: Colors.grey[50]),
+        child: isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : Column(
+                children: [
+                  buildFilterSection(),
+                  Expanded(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        if (constraints.maxWidth < 900) {
+                          return ListView.builder(
+                            itemCount: users.length,
+                            itemBuilder: (context, index) => buildMobileCard(users[index]),
+                          );
+                        } else {
+                          return buildDesktopTable();
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
       ),
     );
   }

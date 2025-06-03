@@ -43,6 +43,10 @@ class _ModuleDropdownWidgetState extends State<ModuleDropdownWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth >= 600;
+    final isMobile = screenWidth < 600;
+    
     final List<dynamic> rawModules = widget.modules[r'$values'] ?? [];
 
     List<Map<String, dynamic>> modules = rawModules
@@ -51,34 +55,36 @@ class _ModuleDropdownWidgetState extends State<ModuleDropdownWidget> {
 
     modules.sort((a, b) => a['code'].compareTo(b['code']));
 
-    // Filter modules based on search query
     final filteredModules = _searchQuery.isEmpty
         ? modules
         : _filterModules(modules, _searchQuery);
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _buildSearchBar(),
-        const SizedBox(height: 8),
-        _buildActionButtons(),
-        const SizedBox(height: 8),
-        ListView(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          children: filteredModules.map((m) => _buildModuleItem(m, 0)).toList(),
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildSearchBar(constraints.maxWidth),
+            SizedBox(height: isMobile ? 4 : 8),
+            _buildActionButtons(constraints.maxWidth, isMobile),
+            SizedBox(height: isMobile ? 4 : 8),
+            ListView(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              children: filteredModules.map((m) => _buildModuleItem(m, 0, constraints.maxWidth)).toList(),
+            ),
+          ],
+        );
+      },
     );
   }
 
-  Widget _buildActionButtons() {
+  Widget _buildActionButtons(double screenWidth, bool isMobile) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 4 : 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          // Refresh Button
           Container(
             decoration: BoxDecoration(
               color: Colors.blue.shade50,
@@ -86,50 +92,53 @@ class _ModuleDropdownWidgetState extends State<ModuleDropdownWidget> {
               border: Border.all(color: Colors.blue.shade200),
             ),
           ),
-          const SizedBox(width: 8),
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.green.shade50,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.green.shade200),
-            ),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
+          SizedBox(width: isMobile ? 4 : 8),
+          Flexible(
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.green.shade50,
                 borderRadius: BorderRadius.circular(8),
-                onTap: () async {
-                  final result = await Navigator.pushNamed(
-                    context,
-                    '/module/create',
-                    arguments: {
-                      'projectId': widget.projectId,
-                      'projectMembers': widget.projectMembers ?? [],
-                      'parentModuleId': null,
-                    },
-                  );
-                  if (result == true) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Tạo module thành công!'))
+                border: Border.all(color: Colors.green.shade200),
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: () async {
+                    final result = await Navigator.pushNamed(
+                      context,
+                      '/module/create',
+                      arguments: {
+                        'projectId': widget.projectId,
+                        'projectMembers': widget.projectMembers ?? [],
+                        'parentModuleId': null,
+                      },
                     );
-                    widget.onRefresh?.call();
-                  }
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.add, color: Colors.green, size: 20),
-                      SizedBox(width: 4),
-                      Text(
-                        'Thêm Module',
-                        style: TextStyle(
-                          color: Colors.green,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
+                    if (result == true) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Tạo module thành công!'))
+                      );
+                      widget.onRefresh?.call();
+                    }
+                  },
+                  child: Container(
+                    padding: EdgeInsets.all(isMobile ? 6 : 8),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.add, color: Colors.green, size: isMobile ? 16 : 20),
+                        SizedBox(width: isMobile ? 2 : 4),
+                        if (!isMobile || screenWidth > 360)
+                          Text(
+                            'Thêm Module',
+                            style: TextStyle(
+                              color: Colors.green,
+                              fontSize: isMobile ? 10 : 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -140,9 +149,11 @@ class _ModuleDropdownWidgetState extends State<ModuleDropdownWidget> {
     );
   }
 
-  Widget _buildSearchBar() {
+  Widget _buildSearchBar(double screenWidth) {
+    final isMobile = screenWidth < 600;
+    
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8),
+      margin: EdgeInsets.symmetric(horizontal: isMobile ? 4 : 8),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
@@ -158,23 +169,24 @@ class _ModuleDropdownWidgetState extends State<ModuleDropdownWidget> {
         controller: _searchController,
         decoration: InputDecoration(
           hintText: 'Tìm module',
-          prefixIcon: const Icon(Icons.search, color: Colors.grey),
+          hintStyle: TextStyle(fontSize: isMobile ? 14 : 16),
+          prefixIcon: Icon(Icons.search, color: Colors.grey, size: isMobile ? 20 : 24),
           suffixIcon: _searchQuery.isNotEmpty
               ? IconButton(
-                  icon: const Icon(Icons.clear, color: Colors.grey),
+                  icon: Icon(Icons.clear, color: Colors.grey, size: isMobile ? 20 : 24),
                   onPressed: () {
                     _searchController.clear();
                   },
                 )
               : null,
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+          contentPadding: EdgeInsets.symmetric(vertical: isMobile ? 8 : 12),
         ),
+        style: TextStyle(fontSize: isMobile ? 14 : 16),
       ),
     );
   }
 
-  /// Hàm normalize một module (cha + đệ quy children)
   Map<String, dynamic> _normalizeModule(Map<String, dynamic> raw) {
     final projectId = raw['projectId'] ?? widget.projectId;
 
@@ -189,13 +201,12 @@ class _ModuleDropdownWidgetState extends State<ModuleDropdownWidget> {
     };
   }
 
-  /// Đảm bảo children kế thừa projectId từ module cha
   List<Map<String, dynamic>> normalizeList(dynamic rawList, int parentProjectId) {
     if (rawList is Map && rawList.containsKey(r'$values')) {
       return List<Map<String, dynamic>>.from(
         rawList[r'$values'].map((child) {
           final normalized = _normalizeModule(Map<String, dynamic>.from(child));
-          normalized['projectId'] = parentProjectId; // gán lại projectId
+          normalized['projectId'] = parentProjectId;
           return normalized;
         }),
       );
@@ -203,7 +214,6 @@ class _ModuleDropdownWidgetState extends State<ModuleDropdownWidget> {
     return [];
   }
 
-  // Filter modules recursively
   List<Map<String, dynamic>> _filterModules(List<Map<String, dynamic>> modules, String query) {
     List<Map<String, dynamic>> results = [];
     
@@ -220,7 +230,6 @@ class _ModuleDropdownWidgetState extends State<ModuleDropdownWidget> {
         
         if (matchingChildren.isNotEmpty) {
           filteredModule['children'] = matchingChildren;
-          // Auto-expand parent if children match the search
           _expanded[module['id']] = true;
         }
         
@@ -231,10 +240,12 @@ class _ModuleDropdownWidgetState extends State<ModuleDropdownWidget> {
     return results;
   }
 
-  Widget _buildModuleItem(Map<String, dynamic> module, int depth) {
+  Widget _buildModuleItem(Map<String, dynamic> module, int depth, double screenWidth) {
     final hasChildren = module['children'].isNotEmpty;
     final isExpanded = _expanded[module['id']] ?? false;
     final String status = module['status'] ?? 'none';
+    final isMobile = screenWidth < 600;
+    final isSmallMobile = screenWidth < 360;
 
     Color statusColor;
     switch (status) {
@@ -248,11 +259,15 @@ class _ModuleDropdownWidgetState extends State<ModuleDropdownWidget> {
         statusColor = Colors.grey;
     }
 
+    final leftMargin = isMobile 
+        ? (depth * 8.0 + 4) 
+        : (depth * 16.0 + 8);
+
     return Card(
       margin: EdgeInsets.only(
-        left: depth * 16.0 + 8,
-        right: 8,
-        bottom: 4,
+        left: leftMargin,
+        right: isMobile ? 4 : 8,
+        bottom: isMobile ? 2 : 4,
       ),
       elevation: 0.5,
       shape: RoundedRectangleBorder(
@@ -278,22 +293,22 @@ class _ModuleDropdownWidgetState extends State<ModuleDropdownWidget> {
                     },
                     borderRadius: BorderRadius.circular(20),
                     child: Container(
-                      width: 28,
-                      height: 28,
+                      width: isMobile ? 24 : 28,
+                      height: isMobile ? 24 : 28,
                       alignment: Alignment.center,
                       child: Icon(
                         isExpanded ? Icons.expand_more : Icons.chevron_right,
-                        size: 20,
+                        size: isMobile ? 16 : 20,
                         color: Colors.grey[700],
                       ),
                     ),
                   )
                 else
-                  const SizedBox(width: 28),
+                  SizedBox(width: isMobile ? 24 : 28),
                 Container(
-                  width: 10,
-                  height: 10,
-                  margin: const EdgeInsets.only(right: 8),
+                  width: isMobile ? 8 : 10,
+                  height: isMobile ? 8 : 10,
+                  margin: EdgeInsets.only(right: isMobile ? 4 : 8),
                   decoration: BoxDecoration(
                     color: statusColor,
                     shape: BoxShape.circle,
@@ -307,25 +322,52 @@ class _ModuleDropdownWidgetState extends State<ModuleDropdownWidget> {
                       }
                     },
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: Row(
-                        children: [
-                          Text(
-                            '(${module['code']}) ',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey[800],
+                      padding: EdgeInsets.symmetric(vertical: isMobile ? 8 : 12),
+                      child: isSmallMobile 
+                          ? Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '(${module['code']})',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.grey[800],
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  module['name'] ?? '',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: Colors.grey[800],
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Row(
+                              children: [
+                                Text(
+                                  '(${module['code']}) ',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.grey[800],
+                                    fontSize: isMobile ? 12 : 14,
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Text(
+                                    module['name'] ?? '',
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: Colors.grey[800],
+                                      fontSize: isMobile ? 12 : 14,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                          Expanded(
-                            child: Text(
-                              module['name'] ?? '',
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(color: Colors.grey[800]),
-                            ),
-                          ),
-                        ],
-                      ),
                     ),
                   ),
                 ),
@@ -350,11 +392,11 @@ class _ModuleDropdownWidgetState extends State<ModuleDropdownWidget> {
                         }
                       },
                       child: Container(
-                        padding: const EdgeInsets.all(8),
-                        child: const Icon(
+                        padding: EdgeInsets.all(isMobile ? 6 : 8),
+                        child: Icon(
                           Icons.add_circle_outline, 
                           color: Colors.green,
-                          size: 20,
+                          size: isMobile ? 16 : 20,
                         ),
                       ),
                     ),
@@ -368,7 +410,7 @@ class _ModuleDropdownWidgetState extends State<ModuleDropdownWidget> {
               duration: const Duration(milliseconds: 200),
               child: Column(
                 children: module['children'].map<Widget>(
-                  (child) => _buildModuleItem(child, depth + 1),
+                  (child) => _buildModuleItem(child, depth + 1, screenWidth),
                 ).toList(),
               ),
             ),

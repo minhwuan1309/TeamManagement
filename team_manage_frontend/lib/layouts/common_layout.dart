@@ -28,6 +28,10 @@ class CommonLayout extends StatefulWidget {
 }
 
 class _CommonLayoutState extends State<CommonLayout> {
+  bool get isMobile => MediaQuery.of(context).size.width < 768;
+  bool get isTablet => MediaQuery.of(context).size.width >= 768 && MediaQuery.of(context).size.width < 1024;
+  bool get isDesktop => MediaQuery.of(context).size.width >= 1024;
+  
   bool isLoading = false;
   bool _refreshInProgress = false;
   bool showDeletedOnly = false;
@@ -257,7 +261,10 @@ class _CommonLayoutState extends State<CommonLayout> {
 
   Widget _buildContentHeader() {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 8 : 16, 
+        vertical: isMobile ? 8 : 12
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
@@ -274,62 +281,114 @@ class _CommonLayoutState extends State<CommonLayout> {
           ),
         ),
       ),
-      child: Row(
-        children: [
-          IconButton(
-            icon: Icon(_isSidebarVisible ? Icons.menu_open : Icons.menu),
-            onPressed: () {
-              setState(() {
-                _isSidebarVisible = !_isSidebarVisible;
-              });
-            },
-            tooltip: _isSidebarVisible ? 'Ẩn sidebar' : 'Hiện sidebar',
-          ),
-          SizedBox(width: 12),
-          
-          // Hiển thị nút back khi đang ở trang chi tiết module
-          if (currentPageIndex == 1)
-            IconButton(
-              icon: const Icon(Icons.arrow_back),
-              tooltip: 'Quay lại danh sách',
-              onPressed: () {
-                setState(() {
-                  currentPageIndex = 0;
-                  selectedModule = null;
-                });
-              },
-            ),
-          
-          Expanded(
-            child: Text(
-              dynamicTitle,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
+      child: isMobile 
+        ? Column(
+            children: [
+              Row(
+                children: [
+                  IconButton(
+                    icon: Icon(_isSidebarVisible ? Icons.menu_open : Icons.menu),
+                    onPressed: () {
+                      setState(() {
+                        _isSidebarVisible = !_isSidebarVisible;
+                      });
+                    },
+                    tooltip: _isSidebarVisible ? 'Ẩn sidebar' : 'Hiện sidebar',
+                  ),
+                  
+                  if (currentPageIndex == 1)
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back),
+                      tooltip: 'Quay lại danh sách',
+                      onPressed: () {
+                        setState(() {
+                          currentPageIndex = 0;
+                          selectedModule = null;
+                        });
+                      },
+                    ),
+                  
+                  Expanded(
+                    child: Text(
+                      dynamicTitle,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  
+                  IconButton(
+                    onPressed: _onRefreshModules,
+                    icon: const Icon(Icons.refresh),
+                    tooltip: 'Làm mới dữ liệu',
+                  ),
+                ],
               ),
-              overflow: TextOverflow.ellipsis,
-            ),
+              if (widget.appBarActions != null && widget.appBarActions!.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: widget.appBarActions!,
+                  ),
+                ),
+            ],
+          )
+        : Row(
+            children: [
+              IconButton(
+                icon: Icon(_isSidebarVisible ? Icons.menu_open : Icons.menu),
+                onPressed: () {
+                  setState(() {
+                    _isSidebarVisible = !_isSidebarVisible;
+                  });
+                },
+                tooltip: _isSidebarVisible ? 'Ẩn sidebar' : 'Hiện sidebar',
+              ),
+              SizedBox(width: 12),
+              
+              if (currentPageIndex == 1)
+                IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  tooltip: 'Quay lại danh sách',
+                  onPressed: () {
+                    setState(() {
+                      currentPageIndex = 0;
+                      selectedModule = null;
+                    });
+                  },
+                ),
+              Expanded(
+                child: Text(
+                  dynamicTitle,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              
+              IconButton(
+                onPressed: _onRefreshModules,
+                icon: const Icon(Icons.refresh),
+                tooltip: 'Làm mới dữ liệu',
+              ),
+              
+              if (widget.appBarActions != null) ...widget.appBarActions!,
+              
+              if (Navigator.of(context).canPop())
+                IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  tooltip: 'Quay lại',
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                )
+            ],
           ),
-          
-          // Thêm nút reload ở đây
-          IconButton(
-            onPressed: _onRefreshModules,
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Làm mới dữ liệu',
-          ),
-          
-          if (widget.appBarActions != null) ...widget.appBarActions!,
-          
-          if (Navigator.of(context).canPop())
-            IconButton(
-              icon: const Icon(Icons.arrow_back),
-              tooltip: 'Quay lại',
-              onPressed: () {
-                Navigator.pop(context);
-              },
-            )
-        ],
-      ),
     );
   }
 
@@ -337,7 +396,7 @@ class _CommonLayoutState extends State<CommonLayout> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: null,
-      drawer: _isSidebarVisible ? null : Sidebar(
+      drawer: (isMobile && !_isSidebarVisible) ? Sidebar(
         projects: projects,
         selectedProjectId: selectedProjectId,
         projectMembers: projectMembers,
@@ -345,10 +404,10 @@ class _CommonLayoutState extends State<CommonLayout> {
         onProjectChanged: _onProjectChanged,
         onModuleSelected: _onModuleSelected,
         onRefresh: _onRefreshModules,
-      ),
+      ) : null,
       body: Row(
         children: [
-          if (_isSidebarVisible)
+          if (!isMobile && _isSidebarVisible)
             Sidebar(
               projects: projects,
               selectedProjectId: selectedProjectId,
@@ -365,9 +424,12 @@ class _CommonLayoutState extends State<CommonLayout> {
                 _buildContentHeader(),
 
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isMobile ? 8 : 16, 
+                    vertical: isMobile ? 4 : 8
+                  ),
                   child: SizedBox(
-                    height: 48,
+                    height: isMobile ? 40 : 48,
                     child: GlobalSearchBar(),
                   ),
                 ),
