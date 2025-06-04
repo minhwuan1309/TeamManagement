@@ -15,34 +15,32 @@ final String baseUrl =
         :'http://192.168.1.8:5053/api';
 
 class ApiService {
-  static Future<String?> login(String email, String password) async{
+  static Future<String?> login(String email, String password) async {
     final url = Uri.parse('$baseUrl/auth/login');
 
-    
-      final response = await http.post(
-        url,
-        headers: {'Content-Type' : 'application/json'},
-        body: jsonEncode({
-          'email': email,
-          'password': password,
-        })
-      );
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'email': email, 'password': password}),
+    );
 
-      if(response.statusCode == 200){
-        final data = jsonDecode(response.body);
-        final token = data['token'];
-        final role = data['role'];
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final token = data['token'];
+      final role = data['role'];
 
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('token', token);
-        await prefs.setInt('role', role);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('token', token);
+      await prefs.setInt('role', role);
+      await prefs.setString('email', email);
 
-        return token;
-      } else if (response.statusCode == 401) {
+      return token;
+    } else if (response.statusCode == 401) {
       final message = response.body.toLowerCase();
       if (message.contains("sai mật khẩu")) {
         throw Exception("Sai tài khoản hoặc mật khẩu");
-      } else if (message.contains("email không tồn tại") || message.contains("tài khoản bị khoá")) {
+      } else if (message.contains("email không tồn tại") ||
+          message.contains("tài khoản bị khoá")) {
         throw Exception("Không tìm thấy tài khoản");
       } else {
         throw Exception("Đăng nhập thất bại");
@@ -50,7 +48,6 @@ class ApiService {
     } else {
       throw Exception("Lỗi hệ thống. Vui lòng thử lại sau.");
     }
-    
   }
 
   static Future<Map<String, dynamic>?> getProfile() async {
@@ -59,7 +56,7 @@ class ApiService {
 
     if (token == null) return null;
 
-    final url = Uri.parse('${getBaseUrl()}/auth/me');
+    final url = Uri.parse('$baseUrl/auth/me');
     final response = await http.get(
       url,
       headers: {

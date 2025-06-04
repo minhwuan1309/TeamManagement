@@ -35,7 +35,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    fetchData();
     loadUserAndStats();
   }
 
@@ -81,30 +80,49 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> loadUserAndStats() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
+
+    // Nếu token không tồn tại, chuyển về login
     if (token == null || token.isEmpty) {
-      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+      _redirectToLogin(message: 'Vui lòng đăng nhập.');
       return;
     }
 
     try {
       final profile = await ApiService.getProfile();
+
+      // Nếu token sai, hoặc backend trả profile = null → logout
+      if (profile == null || profile['fullName'] == null) {
+        _redirectToLogin(message: 'Phiên đăng nhập đã hết. Đăng nhập lại để tiếp tục.');
+        return;
+      }
+
       final taskData = await fetchTaskTrend();
       final issueData = await fetchIssueTrend();
 
       setState(() {
-        userName = profile?['fullName'] ?? '';
+        userName = profile['fullName'];
         taskTrend = taskData;
         issueTrend = issueData;
       });
+
+      // ✅ Gọi fetchData() sau khi xác minh token hợp lệ
+      fetchData();
+      
     } catch (e) {
-      if (mounted) {
-        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Hãy đăng nhập để tiếp tục!')),
-        );
-      }
+      print('Lỗi lấy thông tin người dùng: $e');
+      _redirectToLogin(message: 'Có lỗi xảy ra. Đăng nhập lại để tiếp tục.');
     }
   }
+
+  void _redirectToLogin({required String message}) {
+    if (mounted) {
+      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    }
+  }
+
 
   Map<DateTime, Map<String, int>> parseTimeSeriesData(dynamic json) {
     final rawList = json['\$values'] as List<dynamic>;

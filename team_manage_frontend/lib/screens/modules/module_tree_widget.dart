@@ -65,9 +65,9 @@ class _ModuleDropdownWidgetState extends State<ModuleDropdownWidget> {
           mainAxisSize: MainAxisSize.min,
           children: [
             _buildSearchBar(constraints.maxWidth),
-            SizedBox(height: isMobile ? 4 : 8),
+            SizedBox(height: isMobile ? 4 : 6),
             _buildActionButtons(constraints.maxWidth, isMobile),
-            SizedBox(height: isMobile ? 4 : 8),
+            SizedBox(height: isMobile ? 4 : 6),
             ListView(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),

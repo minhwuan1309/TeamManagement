@@ -21,6 +21,9 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
   List<dynamic> issues = [];
   bool isLoading = true;
   List<Map<String, dynamic>> comments = [];
+  final TextEditingController _commentController = TextEditingController();
+  bool isCommenting = false;
+
 
   @override
   void initState() {
@@ -62,6 +65,40 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
       ).showSnackBar(SnackBar(content: Text('Lỗi kết nối: $e')));
     }
   }
+
+Future<void> addComment() async {
+  if (_commentController.text.trim().isEmpty) return;
+
+  setState(() => isCommenting = true);
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('token');
+
+  final body = jsonEncode({
+    'taskId': task!['id'], 
+    'content': _commentController.text.trim(),
+  });
+
+  final res = await http.post(
+    Uri.parse('$baseUrl/comment'),
+    headers: {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    },
+    body: body,
+  );
+
+  setState(() => isCommenting = false);
+
+  if (res.statusCode == 201) {
+    _commentController.clear();
+    await fetchComments(); // hàm load comment hiện tại bạn đang có
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Lỗi khi thêm bình luận')),
+    );
+  }
+}
+
 
   Future<void> fetchComments() async {
     final prefs = await SharedPreferences.getInstance();
@@ -148,121 +185,119 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
   }
 
   Future<void> updateTaskStatus(int taskId, String statusString) async {
-  final prefs = await SharedPreferences.getInstance();
-  final token = prefs.getString('token');
-  final headers = {'Authorization': 'Bearer $token'};
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    final headers = {'Authorization': 'Bearer $token'};
 
-  int statusValue;
-  switch (statusString.toLowerCase()) {
-    case 'none':
-      statusValue = 0;
-      break;
-    case 'inprogress':
-      statusValue = 1;
-      break;
-    case 'done':
-      statusValue = 2;
-      break;
-    default:
-      statusValue = 0;
-  }
+    int statusValue;
+    switch (statusString.toLowerCase()) {
+      case 'none':
+        statusValue = 0;
+        break;
+      case 'inprogress':
+        statusValue = 1;
+        break;
+      case 'done':
+        statusValue = 2;
+        break;
+      default:
+        statusValue = 0;
+    }
 
-  try {
-    final res = await http.put(
-      Uri.parse('$baseUrl/task/update-status/$taskId?status=$statusValue'),
-      headers: headers,
-    );
-
-    if (res.statusCode == 200) {
-      await fetchTask(); // cập nhật lại UI
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cập nhật trạng thái thành công')),
+    try {
+      final res = await http.put(
+        Uri.parse('$baseUrl/task/update-status/$taskId?status=$statusValue'),
+        headers: headers,
       );
-    } else {
+
+      if (res.statusCode == 200) {
+        await fetchTask(); // cập nhật lại UI
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Cập nhật trạng thái thành công')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi cập nhật trạng thái: ${res.statusCode}')),
+        );
+      }
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi cập nhật trạng thái: ${res.statusCode}')),
+        SnackBar(content: Text('Lỗi kết nối: $e')),
       );
     }
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Lỗi kết nối: $e')),
+  }
+
+  void _showTaskStatusUpdateDialog(String currentStatus) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Cập nhật trạng thái Task'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildStatusOption('none', 'Chưa bắt đầu', currentStatus),
+              _buildStatusOption('inProgress', 'Đang thực hiện', currentStatus),
+              _buildStatusOption('done', 'Hoàn thành', currentStatus),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Huỷ'),
+            ),
+          ],
+        );
+      },
     );
   }
-}
 
-void _showTaskStatusUpdateDialog(String currentStatus) {
-  showDialog(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Cập nhật trạng thái Task'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
+  Widget _buildStatusOption(String status, String label, String currentStatus) {
+    final bool isSelected = currentStatus == status;
+    final Color statusColor = status == 'done'
+        ? Colors.green
+        : status == 'inProgress'
+            ? Colors.orange
+            : Colors.grey;
+
+    return InkWell(
+      onTap: () {
+        Navigator.pop(context);
+        if (currentStatus != status) {
+          updateTaskStatus(task!['id'], status);
+        }
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+        decoration: BoxDecoration(
+          color: isSelected ? statusColor.withOpacity(0.2) : Colors.transparent,
+          border: Border.all(
+            color: isSelected ? statusColor : Colors.grey.shade300,
+            width: isSelected ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
           children: [
-            _buildStatusOption('none', 'Chưa bắt đầu', currentStatus),
-            _buildStatusOption('inProgress', 'Đang thực hiện', currentStatus),
-            _buildStatusOption('done', 'Hoàn thành', currentStatus),
+            Icon(
+              isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+              color: isSelected ? statusColor : Colors.grey,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              label,
+              style: TextStyle(
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected ? statusColor : Colors.black87,
+              ),
+            ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Huỷ'),
-          ),
-        ],
-      );
-    },
-  );
-}
-
-Widget _buildStatusOption(String status, String label, String currentStatus) {
-  final bool isSelected = currentStatus == status;
-  final Color statusColor = status == 'done'
-      ? Colors.green
-      : status == 'inProgress'
-          ? Colors.orange
-          : Colors.grey;
-
-  return InkWell(
-    onTap: () {
-      Navigator.pop(context);
-      if (currentStatus != status) {
-        updateTaskStatus(task!['id'], status);
-      }
-    },
-    child: Container(
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-      decoration: BoxDecoration(
-        color: isSelected ? statusColor.withOpacity(0.2) : Colors.transparent,
-        border: Border.all(
-          color: isSelected ? statusColor : Colors.grey.shade300,
-          width: isSelected ? 2 : 1,
-        ),
-        borderRadius: BorderRadius.circular(8),
       ),
-      child: Row(
-        children: [
-          Icon(
-            isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-            color: isSelected ? statusColor : Colors.grey,
-          ),
-          const SizedBox(width: 12),
-          Text(
-            label,
-            style: TextStyle(
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              color: isSelected ? statusColor : Colors.black87,
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
-
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -596,9 +631,39 @@ Widget _buildStatusOption(String status, String label, String currentStatus) {
                           );
                         }).toList(),
                       ),
+const SizedBox(height: 16),
+Row(
+  crossAxisAlignment: CrossAxisAlignment.end,
+  children: [
+    Expanded(
+      child: TextField(
+        controller: _commentController,
+        minLines: 1,
+        maxLines: 5,
+        decoration: InputDecoration(
+          hintText: 'Nhập bình luận...',
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        ),
+      ),
+    ),
+    const SizedBox(width: 8),
+    isCommenting
+        ? const SizedBox(
+            width: 32,
+            height: 32,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          )
+        : IconButton(
+            icon: const Icon(Icons.send, color: Colors.blue),
+            onPressed: addComment,
+            tooltip: 'Gửi bình luận',
+          ),
+  ],
+),
 
-                    
-                    const SizedBox(height: 24),
                     
                     // Issues header
                     Container(

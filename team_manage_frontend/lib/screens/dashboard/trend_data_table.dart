@@ -582,42 +582,47 @@ class _TrendDataTableState extends State<TrendDataTable>
           ),
         ],
       ),
-      child: Container(
-        height: 200,
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.grey.withOpacity(0.1),
-                shape: BoxShape.circle,
+      child: SingleChildScrollView(
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 200),
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.table_chart,
+                  size: 48,
+                  color: Colors.grey[400],
+                ),
               ),
-              child: Icon(
-                Icons.table_chart,
-                size: 48,
-                color: Colors.grey[400],
+              const SizedBox(height: 16),
+              Text(
+                "Không có dữ liệu ${widget.title}",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 18,
+                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              "Không có dữ liệu ${widget.title}",
-              style: TextStyle(
-                fontSize: 18,
-                color: isDark ? Colors.grey[400] : Colors.grey[600],
-                fontWeight: FontWeight.w600,
+              const SizedBox(height: 8),
+              Text(
+                "Dữ liệu sẽ xuất hiện khi có thông tin mới",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isDark ? Colors.grey[500] : Colors.grey[500],
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              "Dữ liệu sẽ xuất hiện khi có thông tin mới",
-              style: TextStyle(
-                fontSize: 14,
-                color: isDark ? Colors.grey[500] : Colors.grey[500],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

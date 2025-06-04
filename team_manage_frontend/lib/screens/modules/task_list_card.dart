@@ -40,6 +40,11 @@ class _TaskListCardState extends State<TaskListCard> {
   final Map<int, bool> submittingComments = {};
   late final int currentUserRole = widget.currentUserRole;
 
+  // Add responsive getters
+  bool get isMobile => MediaQuery.of(context).size.width < 768;
+  bool get isTablet => MediaQuery.of(context).size.width >= 768 && MediaQuery.of(context).size.width < 1024;
+  bool get isDesktop => MediaQuery.of(context).size.width >= 1024;
+
   @override
   void dispose() {
     for (var controller in commentControllers.values) {
@@ -153,16 +158,16 @@ class _TaskListCardState extends State<TaskListCard> {
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 3,
+      elevation: isMobile ? 2 : 3,
       shadowColor: Colors.black12,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(isMobile ? 12 : 16)),
       child: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: EdgeInsets.all(isMobile ? 12.0 : 20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildHeader(context),
-            const SizedBox(height: 16),
+            SizedBox(height: isMobile ? 12 : 16),
             widget.tasks.isEmpty
                 ? _buildEmptyState(context)
                 : _buildTaskList(context),
@@ -176,19 +181,19 @@ class _TaskListCardState extends State<TaskListCard> {
     return Row(
       children: [
         Container(
-          padding: const EdgeInsets.all(8),
+          padding: EdgeInsets.all(isMobile ? 6 : 8),
           decoration: BoxDecoration(
             color: Colors.blue[50],
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(isMobile ? 8 : 12),
           ),
-          child: const Icon(Icons.task_alt, color: Colors.blue, size: 24),
+          child: Icon(Icons.task_alt, color: Colors.blue, size: isMobile ? 20 : 24),
         ),
-        const SizedBox(width: 12),
-        const Expanded(
+        SizedBox(width: isMobile ? 8 : 12),
+        Expanded(
           child: Text(
             'Danh sách công việc',
             style: TextStyle(
-              fontSize: 20,
+              fontSize: isMobile ? 16 : 20,
               fontWeight: FontWeight.w700,
               color: Colors.black87,
             ),
@@ -196,7 +201,10 @@ class _TaskListCardState extends State<TaskListCard> {
         ),
         if (widget.tasks.isNotEmpty)
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: EdgeInsets.symmetric(
+              horizontal: isMobile ? 8 : 12,
+              vertical: isMobile ? 4 : 6
+            ),
             decoration: BoxDecoration(
               color: Colors.grey[100],
               borderRadius: BorderRadius.circular(20),
@@ -204,7 +212,7 @@ class _TaskListCardState extends State<TaskListCard> {
             child: Text(
               '${widget.tasks.length}',
               style: TextStyle(
-                fontSize: 14,
+                fontSize: isMobile ? 12 : 14,
                 fontWeight: FontWeight.w600,
                 color: Colors.grey[700],
               ),
@@ -246,7 +254,7 @@ class _TaskListCardState extends State<TaskListCard> {
       duration: const Duration(milliseconds: 200),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(isMobile ? 8 : 12),
         border: Border.all(
           color: isExpanded ? Colors.blue[200]! : Colors.grey[200]!,
           width: isExpanded ? 2 : 1,
@@ -254,7 +262,7 @@ class _TaskListCardState extends State<TaskListCard> {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
+            blurRadius: isMobile ? 4 : 8,
             offset: const Offset(0, 2),
           ),
         ],
@@ -264,35 +272,33 @@ class _TaskListCardState extends State<TaskListCard> {
           Material(
             color: Colors.transparent,
             child: InkWell(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-            onTap: () {
-              final statusStr = status.toString().toLowerCase();
-              final normalizedStatus = statusStr == 'done' ? 2 : statusStr == 'inprogress' ? 1 : 0;
+              borderRadius: BorderRadius.vertical(top: Radius.circular(isMobile ? 8 : 12)),
+              onTap: () {
+                final statusStr = status.toString().toLowerCase();
+                final normalizedStatus = statusStr == 'done' ? 2 : statusStr == 'inprogress' ? 1 : 0;
 
-              if (normalizedStatus == 2 && currentUserRole != 0) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Chỉ admin mới được xem task đã hoàn thành.'),
-                    backgroundColor: Colors.red,
-                    
-                  ),
-                );
-                return;
-              }
-              _navigateToTaskDetail(taskId);
-            },
-            
+                if (normalizedStatus == 2 && currentUserRole != 0) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Chỉ admin mới được xem task đã hoàn thành.'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+                _navigateToTaskDetail(taskId);
+              },
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(isMobile ? 12 : 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildTaskHeader(title, status),
                     if (currentStepName != null && currentStepName.isNotEmpty) ...[
-                      const SizedBox(height: 8),
+                      SizedBox(height: isMobile ? 6 : 8),
                       _buildCurrentStep(currentStepName),
                     ],
-                    const SizedBox(height: 12),
+                    SizedBox(height: isMobile ? 8 : 12),
                     _buildTaskMetadata(status, startDate, endDate, assignedUserName),
                   ],
                 ),
@@ -311,25 +317,25 @@ class _TaskListCardState extends State<TaskListCard> {
     return Row(
       children: [
         Container(
-          width: 44,
-          height: 44,
+          width: isMobile ? 36 : 44,
+          height: isMobile ? 36 : 44,
           decoration: BoxDecoration(
             color: widget.getStatusColor(status).withOpacity(0.15),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(isMobile ? 8 : 12),
           ),
           child: Icon(
             _getStatusIcon(status),
             color: widget.getStatusColor(status),
-            size: 24,
+            size: isMobile ? 20 : 24,
           ),
         ),
-        const SizedBox(width: 12),
+        SizedBox(width: isMobile ? 8 : 12),
         Expanded(
           child: Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.w600,
-              fontSize: 16,
+              fontSize: isMobile ? 14 : 16,
               color: Colors.black87,
             ),
             maxLines: 2,
@@ -338,7 +344,7 @@ class _TaskListCardState extends State<TaskListCard> {
         ),
         Icon(
           Icons.arrow_forward_ios,
-          size: 16,
+          size: isMobile ? 14 : 16,
           color: Colors.grey[400],
         ),
       ],
@@ -358,21 +364,24 @@ class _TaskListCardState extends State<TaskListCard> {
 
   Widget _buildCurrentStep(String currentStepName) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 8 : 12,
+        vertical: isMobile ? 4 : 6
+      ),
       decoration: BoxDecoration(
         color: Colors.purple[50],
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(isMobile ? 6 : 8),
         border: Border.all(color: Colors.purple[200]!),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.alt_route, size: 16, color: Colors.purple[600]),
-          const SizedBox(width: 6),
+          Icon(Icons.alt_route, size: isMobile ? 14 : 16, color: Colors.purple[600]),
+          SizedBox(width: isMobile ? 4 : 6),
           Text(
             'Bước hiện tại: $currentStepName',
             style: TextStyle(
-              fontSize: 13,
+              fontSize: isMobile ? 12 : 13,
               color: Colors.purple[700],
               fontWeight: FontWeight.w500,
             ),
@@ -413,22 +422,25 @@ class _TaskListCardState extends State<TaskListCard> {
   Widget _buildMetadataBadge(String text, Color? bgColor, Color? textColor,
       {IconData? icon}) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 8 : 10,
+        vertical: isMobile ? 4 : 6
+      ),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(isMobile ? 12 : 16),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 14, color: textColor),
-            const SizedBox(width: 4),
+            Icon(icon, size: isMobile ? 12 : 14, color: textColor),
+            SizedBox(width: isMobile ? 2 : 4),
           ],
           Text(
             text,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: isMobile ? 11 : 12,
               color: textColor,
               fontWeight: FontWeight.w500,
             ),
@@ -450,26 +462,29 @@ class _TaskListCardState extends State<TaskListCard> {
       ),
       child: Material(
         color: Colors.grey[50],
-        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(isMobile ? 8 : 12)),
         child: InkWell(
-          borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(isMobile ? 8 : 12)),
           onTap: () => _toggleComments(taskId),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: EdgeInsets.symmetric(
+              horizontal: isMobile ? 12 : 16,
+              vertical: isMobile ? 8 : 12
+            ),
             child: Row(
               children: [
                 Icon(
                   Icons.comment_outlined,
-                  size: 18,
+                  size: isMobile ? 16 : 18,
                   color: Colors.grey[600],
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: isMobile ? 6 : 8),
                 Text(
                   commentCount > 0 
                       ? 'Bình luận ($commentCount)'
                       : 'Bình luận',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: isMobile ? 13 : 14,
                     color: Colors.grey[700],
                     fontWeight: FontWeight.w500,
                   ),
@@ -477,8 +492,8 @@ class _TaskListCardState extends State<TaskListCard> {
                 const Spacer(),
                 if (isLoading)
                   SizedBox(
-                    width: 16,
-                    height: 16,
+                    width: isMobile ? 14 : 16,
+                    height: isMobile ? 14 : 16,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
                       valueColor: AlwaysStoppedAnimation(Colors.grey[400]),
@@ -533,7 +548,10 @@ class _TaskListCardState extends State<TaskListCard> {
 
   Widget _buildCommentItem(Map<String, dynamic> comment) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 12 : 16,
+        vertical: isMobile ? 8 : 12
+      ),
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(color: Colors.grey[200]!),
@@ -543,18 +561,18 @@ class _TaskListCardState extends State<TaskListCard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           CircleAvatar(
-            radius: 16,
+            radius: isMobile ? 14 : 16,
             backgroundColor: Colors.blue[100],
             child: Text(
               (comment['userName'] ?? '?')[0].toUpperCase(),
               style: TextStyle(
-                fontSize: 12,
+                fontSize: isMobile ? 11 : 12,
                 fontWeight: FontWeight.w600,
                 color: Colors.blue[700],
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: isMobile ? 8 : 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -563,9 +581,9 @@ class _TaskListCardState extends State<TaskListCard> {
                   children: [
                     Text(
                       comment['userName'] ?? 'Ẩn danh',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w600,
-                        fontSize: 14,
+                        fontSize: isMobile ? 13 : 14,
                         color: Colors.black87,
                       ),
                     ),
@@ -573,17 +591,17 @@ class _TaskListCardState extends State<TaskListCard> {
                     Text(
                       widget.formatDate(comment['createdAt']),
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: isMobile ? 10 : 11,
                         color: Colors.grey[500],
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: isMobile ? 2 : 4),
                 Text(
                   comment['content'] ?? '',
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: isMobile ? 12 : 13,
                     color: Colors.grey[700],
                     height: 1.4,
                   ),
@@ -621,13 +639,13 @@ class _TaskListCardState extends State<TaskListCard> {
     if (controller == null) return const SizedBox.shrink();
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(isMobile ? 12 : 16),
       decoration: BoxDecoration(
         color: Colors.grey[50],
         border: Border(
           top: BorderSide(color: Colors.grey[200]!),
         ),
-        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(isMobile ? 8 : 12)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -635,30 +653,30 @@ class _TaskListCardState extends State<TaskListCard> {
           Row(
             children: [
               CircleAvatar(
-                radius: 16,
+                radius: isMobile ? 14 : 16,
                 backgroundColor: Colors.blue[100],
                 child: Icon(
                   Icons.person,
-                  size: 16,
+                  size: isMobile ? 14 : 16,
                   color: Colors.blue[700],
                 ),
               ),
-              const SizedBox(width: 12),
-              const Text(
+              SizedBox(width: isMobile ? 8 : 12),
+              Text(
                 'Thêm bình luận',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: isMobile ? 13 : 14,
                   fontWeight: FontWeight.w600,
                   color: Colors.black87,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: isMobile ? 8 : 12),
           Container(
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(isMobile ? 8 : 12),
               border: Border.all(color: Colors.grey[300]!),
             ),
             child: TextField(
@@ -670,18 +688,18 @@ class _TaskListCardState extends State<TaskListCard> {
                 hintText: 'Nhập bình luận của bạn...',
                 hintStyle: TextStyle(
                   color: Colors.grey[500],
-                  fontSize: 14,
+                  fontSize: isMobile ? 13 : 14,
                 ),
                 border: InputBorder.none,
-                contentPadding: const EdgeInsets.all(12),
+                contentPadding: EdgeInsets.all(isMobile ? 8 : 12),
               ),
-              style: const TextStyle(
-                fontSize: 14,
+              style: TextStyle(
+                fontSize: isMobile ? 13 : 14,
                 height: 1.4,
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: isMobile ? 8 : 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
@@ -693,19 +711,22 @@ class _TaskListCardState extends State<TaskListCard> {
                   'Hủy',
                   style: TextStyle(
                     color: Colors.grey[600],
-                    fontSize: 14,
+                    fontSize: isMobile ? 13 : 14,
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: isMobile ? 6 : 8),
               ElevatedButton(
                 onPressed: isSubmitting ? null : () => _submitComment(taskId),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue[600],
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isMobile ? 12 : 16,
+                    vertical: isMobile ? 6 : 8
+                  ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(isMobile ? 6 : 8),
                   ),
                   elevation: 1,
                 ),
@@ -714,24 +735,24 @@ class _TaskListCardState extends State<TaskListCard> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           SizedBox(
-                            width: 14,
-                            height: 14,
+                            width: isMobile ? 12 : 14,
+                            height: isMobile ? 12 : 14,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
                               valueColor: AlwaysStoppedAnimation(Colors.white),
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          const Text(
+                          SizedBox(width: isMobile ? 6 : 8),
+                          Text(
                             'Đang gửi...',
-                            style: TextStyle(fontSize: 14),
+                            style: TextStyle(fontSize: isMobile ? 13 : 14),
                           ),
                         ],
                       )
-                    : const Text(
+                    : Text(
                         'Gửi',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: isMobile ? 13 : 14,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -754,56 +775,62 @@ class _TaskListCardState extends State<TaskListCard> {
 
   Widget _buildEmptyState(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 40),
+      padding: EdgeInsets.symmetric(vertical: isMobile ? 24 : 40),
       alignment: Alignment.center,
       child: Column(
         children: [
           Container(
-            width: 80,
-            height: 80,
+            width: isMobile ? 60 : 80,
+            height: isMobile ? 60 : 80,
             decoration: BoxDecoration(
               color: Colors.grey[100],
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.assignment_outlined,
-              size: 40,
+              size: isMobile ? 30 : 40,
               color: Colors.grey[400],
             ),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: isMobile ? 16 : 20),
           Text(
             'Chưa có công việc nào',
             style: TextStyle(
-              fontSize: 18,
+              fontSize: isMobile ? 16 : 18,
               fontWeight: FontWeight.w600,
               color: Colors.grey[700],
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: isMobile ? 6 : 8),
           Text(
             'Tạo công việc đầu tiên để bắt đầu quản lý dự án',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: isMobile ? 12 : 14,
               color: Colors.grey[500],
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: isMobile ? 16 : 24),
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blue[600],
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 16 : 24,
+                vertical: isMobile ? 8 : 12
+              ),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(isMobile ? 8 : 12),
               ),
               elevation: 2,
             ),
-            icon: const Icon(Icons.add, size: 20),
-            label: const Text(
+            icon: Icon(Icons.add, size: isMobile ? 18 : 20),
+            label: Text(
               'Tạo công việc mới',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                fontSize: isMobile ? 14 : 16,
+                fontWeight: FontWeight.w600
+              ),
             ),
             onPressed: () {
               Navigator.push(

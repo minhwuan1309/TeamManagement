@@ -5,11 +5,9 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:team_manage_frontend/api_service.dart';
 import 'package:team_manage_frontend/layouts/common_layout.dart';
-import 'package:team_manage_frontend/screens/modules/create_module_page.dart';
 import 'package:team_manage_frontend/screens/modules/edit_module_page.dart';
 import 'package:team_manage_frontend/screens/modules/task_list_card.dart';
 import 'package:team_manage_frontend/screens/tasks/create_task_page.dart';
-import 'package:team_manage_frontend/screens/tasks/task_detail_page.dart';
 import 'package:team_manage_frontend/screens/workflow/create_workflow_page.dart';
 import 'package:team_manage_frontend/screens/workflow/workflow_widget.dart';
 
@@ -570,7 +568,6 @@ Future<void> fetchModule(int moduleId) async {
                   setState(() {
                     currentModule = result;
                   });
-                  Navigator.pop(context, true);
                 } else if (result == true) {
                   _refreshModuleData();
                 }
