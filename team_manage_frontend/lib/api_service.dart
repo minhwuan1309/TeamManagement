@@ -9,7 +9,7 @@ import '../utils/env.dart';
 
 final String baseUrl = 
   kIsWeb
-    ?'http://localhost:5053/api'
+    ?'https://api.crawlflow.xyz/api'
     : Platform.isAndroid
         ?'http://10.0.2.2:5053/api'
         :'http://192.168.1.8:5053/api';
@@ -68,9 +68,13 @@ class ApiService {
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
-      print('Lỗi lấy profile: ${response.body}');
       return null;
     }
+  }
+
+  static Future<int?> getStoredRole() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('role');
   }
 
   static Future<bool> register(

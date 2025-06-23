@@ -45,13 +45,19 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFlutterWeb", policy =>
     {
-        policy.WithOrigins("http://localhost:65345", "http://localhost:44362", "http://127.0.0.1:44362")
-            .SetIsOriginAllowed(origin => new Uri(origin).Host == "localhost")
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
+        policy.WithOrigins(
+            "https://taskmanage-frontend-nu.vercel.app",
+            "https://taskmanage-frontend-o1i1k9qxj-minh-quans-projects-e82927ac.vercel.app", 
+            "http://localhost:65345",
+            "http://localhost:44362",
+            "http://127.0.0.1:44362"
+        )
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials();
     });
 });
+
 
 
 // Trả 401 thay vì redirect HTML nếu chưa login

@@ -28,6 +28,7 @@ class CommonLayout extends StatefulWidget {
 }
 
 class _CommonLayoutState extends State<CommonLayout> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool get isMobile => MediaQuery.of(context).size.width < 768;
   bool get isTablet => MediaQuery.of(context).size.width >= 768 && MediaQuery.of(context).size.width < 1024;
   bool get isDesktop => MediaQuery.of(context).size.width >= 1024;
@@ -287,14 +288,19 @@ class _CommonLayoutState extends State<CommonLayout> {
               Row(
                 children: [
                   IconButton(
-                    icon: Icon(_isSidebarVisible ? Icons.menu_open : Icons.menu),
+                    icon: const Icon(Icons.menu),
                     onPressed: () {
-                      setState(() {
-                        _isSidebarVisible = !_isSidebarVisible;
-                      });
+                      if (isMobile) {
+                        _scaffoldKey.currentState?.openDrawer();
+                      } else {
+                        setState(() {
+                          _isSidebarVisible = !_isSidebarVisible;
+                        });
+                      }
                     },
                     tooltip: _isSidebarVisible ? 'Ẩn sidebar' : 'Hiện sidebar',
                   ),
+
                   
                   if (currentPageIndex == 1)
                     IconButton(
@@ -395,16 +401,19 @@ class _CommonLayoutState extends State<CommonLayout> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,
       appBar: null,
-      drawer: (isMobile && !_isSidebarVisible) ? Sidebar(
-        projects: projects,
-        selectedProjectId: selectedProjectId,
-        projectMembers: projectMembers,
-        treeModulesData: treeModulesData,
-        onProjectChanged: _onProjectChanged,
-        onModuleSelected: _onModuleSelected,
-        onRefresh: _onRefreshModules,
-      ) : null,
+      drawer: isMobile
+        ? Sidebar(
+            projects: projects,
+            selectedProjectId: selectedProjectId,
+            projectMembers: projectMembers,
+            treeModulesData: treeModulesData,
+            onProjectChanged: _onProjectChanged,
+            onModuleSelected: _onModuleSelected,
+            onRefresh: _onRefreshModules,
+          )
+        : null,
       body: Row(
         children: [
           if (!isMobile && _isSidebarVisible)

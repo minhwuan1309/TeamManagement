@@ -37,6 +37,7 @@ class Sidebar extends StatelessWidget {
     final profile = await ApiService.getProfile();
     return profile != null ? profile['fullName'] as String? : null;
   }
+  
 
   Widget _buildStatusIndicator(String label, Color color) {
     return Row(
@@ -223,11 +224,18 @@ class Sidebar extends StatelessWidget {
               dense: mobile,
               onTap: () => Navigator.pushNamed(context, '/profile'),
             ),
-            ListTile(
-              leading: const Icon(Icons.supervisor_account),
-              title: const Text('Quản lý người dùng'),
-              dense: mobile,
-              onTap: () => Navigator.pushNamed(context, '/user'),
+            FutureBuilder<int?>(
+              future: ApiService.getStoredRole(),
+              builder: (context, snapshot){
+                if (!snapshot.hasData || snapshot.data != 0) return const SizedBox();
+
+                return ListTile(
+                  leading: const Icon(Icons.admin_panel_settings),
+                  title: const Text('Quản lý người dùng'),
+                  dense: mobile,
+                  onTap: () => Navigator.pushNamed(context, '/user'),
+                );
+              },
             ),
             const Divider(),
             
