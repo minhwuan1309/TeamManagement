@@ -34,19 +34,21 @@ A cross-platform application that helps teams manage members, tasks, and workflo
 ## 📁 Project Structure
 
 TeamManagement/
-├── team_manage_frontend/    # Flutter frontend
-└── TeamManage/              # ASP.NET Core backend
+── team_manage_frontend/    # Flutter frontend
+── TeamManage/              # ASP.NET Core backend
+
+---
 
 ## ▶️ How to Run
 📲 Frontend (Flutter)
-cd team_manage_frontend
-flutter pub get
-flutter run
+ - cd team_manage_frontend
+ - flutter pub get
+ - flutter run
 
 💻 Backend (ASP.NET Core)
-cd TeamManage
-dotnet restore
-dotnet run
+ - cd TeamManage
+ - dotnet restore
+ - dotnet run
 
 ✅ Ensure you configure the appsettings.json for your database connection.
 
